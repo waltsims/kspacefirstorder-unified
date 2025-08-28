@@ -122,7 +122,15 @@ CUDA_ARCH = --generate-code arch=compute_30,code=sm_30 \
             --generate-code arch=compute_62,code=sm_62 \
             --generate-code arch=compute_70,code=sm_70 \
             --generate-code arch=compute_72,code=sm_72 \
-            --generate-code arch=compute_75,code=sm_75
+            --generate-code arch=compute_75,code=sm_75 \
+            --generate-code arch=compute_80,code=sm_80 \
+            --generate-code arch=compute_87,code=sm_87 \
+            --generate-code arch=compute_89,code=sm_89 \
+            --generate-code arch=compute_90,code=sm_90 \
+            --generate-code arch=compute_90a,code=sm_90a \
+            --gencode=arch=compute_100,code=sm_100 \
+         			--gencode=arch=compute_120,code=sm_120 \
+         			--gencode=arch=compute_120,code=compute_120
 
 # What libraries to link and how
 ifeq ($(LINKING), STATIC)
