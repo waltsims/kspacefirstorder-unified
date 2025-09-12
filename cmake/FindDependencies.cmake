@@ -17,7 +17,24 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
 set(HDF5_ENABLE_PARALLEL OFF CACHE BOOL "")
 set(HDF5_BUILD_HL_LIB ON CACHE BOOL "")
 
+# Suppress warnings from HDF5 build on macOS
+if(APPLE)
+    set(HDF5_ENABLE_WARNINGS OFF CACHE BOOL "")
+    # Save current flags
+    set(SAVED_C_FLAGS "${CMAKE_C_FLAGS}")
+    set(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    # Temporarily add warning suppressions for HDF5 build
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-redundant-decls -Wno-pedantic -w")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-redundant-decls -Wno-pedantic -w")
+endif()
+
 FetchContent_MakeAvailable(hdf5)
+
+# Restore original compiler flags on macOS
+if(APPLE)
+    set(CMAKE_C_FLAGS "${SAVED_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${SAVED_CXX_FLAGS}")
+endif()
 
 # Set HDF5 variables for compatibility
 set(HDF5_FOUND TRUE)
@@ -40,6 +57,16 @@ if(USE_OPENMP)
     set(BUILD_TESTS OFF CACHE BOOL "")
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
     
+    # Suppress warnings from FFTW build on macOS
+    if(APPLE)
+        # Save current flags
+        set(SAVED_C_FLAGS_FFTW "${CMAKE_C_FLAGS}")
+        set(SAVED_CXX_FLAGS_FFTW "${CMAKE_CXX_FLAGS}")
+        # Temporarily add warning suppressions for FFTW build
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
+    endif()
+    
     # The FFTW 3.3.10 tarball uses a very old CMake version.
     # By setting this policy globally before making the content available,
     # we allow our modern CMake to build it.
@@ -47,6 +74,12 @@ if(USE_OPENMP)
     FetchContent_MakeAvailable(fftw3)
     # Unset the policy to avoid affecting other parts of the build
     unset(CMAKE_POLICY_VERSION_MINIMUM)
+    
+    # Restore original compiler flags on macOS
+    if(APPLE)
+        set(CMAKE_C_FLAGS "${SAVED_C_FLAGS_FFTW}")
+        set(CMAKE_CXX_FLAGS "${SAVED_CXX_FLAGS_FFTW}")
+    endif()
 
     set(FFTW_FOUND TRUE)
     set(FFTW_LIBRARIES fftw3f)

@@ -48,6 +48,7 @@ jobs:
       uses: Jimver/cuda-toolkit@v0.2.24
       with:
         cuda: '12.3.2'
+        log-file-suffix: cuda-backend.log
     
     - name: Verify nvcc
       run: |
@@ -84,6 +85,7 @@ jobs:
       uses: Jimver/cuda-toolkit@v0.2.24
       with:
         cuda: '12.3.2'
+        log-file-suffix: dual-backend.log
     
     - name: Verify nvcc
       run: |

@@ -27,7 +27,16 @@ jobs:
     - name: Setup clang-format (Windows)
       if: runner.os == 'Windows'
       run: |
-        choco install llvm --yes
+        $llvmVersion = "18.1.8"
+        $llvmUrl = "https://github.com/llvm/llvm-project/releases/download/llvmorg-$llvmVersion/LLVM-$llvmVersion-win64.exe"
+        $llvmInstaller = "$env:TEMP\LLVM-$llvmVersion-win64.exe"
+        
+        Write-Host "Downloading LLVM $llvmVersion..."
+        Invoke-WebRequest -Uri $llvmUrl -OutFile $llvmInstaller -UseBasicParsing
+        
+        Write-Host "Installing LLVM..."
+        Start-Process -FilePath $llvmInstaller -ArgumentList "/S" -Wait
+        
         echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
 
     - name: Check code formatting
