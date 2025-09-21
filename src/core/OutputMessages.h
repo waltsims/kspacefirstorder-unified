@@ -6,8 +6,7 @@
  *            Brno University of Technology \n
  *            jarosjir@fit.vutbr.cz
  *
- * @brief     The header file including output messages based on the operating
- * system.
+ * @brief     The header file containing output messages for the k-Wave solver.
  *
  * @version   kspaceFirstOrder 2.17
  *
@@ -38,12 +37,32 @@
 #ifndef OUTPUT_MESSAGES_H
 #define OUTPUT_MESSAGES_H
 
-// Platform-specific includes
-#ifdef __PLATFORM_WINDOWS__
-#include <platforms/windows/OutputMessagesWindows.h>
-#elif defined(__PLATFORM_LINUX__) || defined(__PLATFORM_MACOS__)
-#include <platforms/unix/OutputMessagesLinux.h>
-#endif
+#include <string>
+
+/**
+ * @brief   Datatype for output messages.
+ * @details Datatype for output messages.
+ */
+using OutputMessage = const std::string;
+
+//----------------------------------------------- Visual style
+//-------------------------------------------------//
+/// Output message - vertical line.
+OutputMessage kOutFmtVerticalLine = "│";
+/// Output message - new line.
+OutputMessage kOutFmtNewLine = "\n";
+/// Output message - end of line.
+OutputMessage kOutFmtEol = kOutFmtVerticalLine + kOutFmtNewLine;
+
+/// Output message - first separator.
+OutputMessage kOutFmtFirstSeparator =
+    "┌───────────────────────────────────────────────────────────────┐\n";
+/// Output message - separator.
+OutputMessage kOutFmtSeparator =
+    "├───────────────────────────────────────────────────────────────┤\n";
+/// Output message -last separator.
+OutputMessage kOutFmtLastSeparator =
+    "└───────────────────────────────────────────────────────────────┘\n";
 
 //------------------------------------------------- Common outputs
 //---------------------------------------------------//
@@ -54,12 +73,96 @@ OutputMessage kOutFmtNoDone = "       " + kOutFmtEol;
 /// Output message - failed message.
 OutputMessage kOutFmtFailed = "Failed " + kOutFmtEol;
 
+//------------------------------------------------- Headers
+//---------------------------------------------------//
+/// Output message.
+OutputMessage kOutFmtSimulationDetailsTitle =
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│                      Simulation details                       │\n"
+    "├───────────────────────────────────────────────────────────────┤\n";
+/// Output message.
+OutputMessage kOutFmtInitializationHeader =
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│                        Initialization                         │\n"
+    "├───────────────────────────────────────────────────────────────┤\n";
+/// Output message.
+OutputMessage kOutFmtMediumDetails =
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│                        Medium details                         │\n"
+    "├───────────────────────────────────────────────────────────────┤\n";
+/// Output message.
+OutputMessage kOutFmtSources =
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│                        Source details                         │\n"
+    "├───────────────────────────────────────────────────────────────┤\n";
+/// Output message.
+OutputMessage kOutFmtSensors =
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│                        Sensor details                         │\n"
+    "├───────────────────────────────────────────────────────────────┤\n";
+/// Output message.
+OutputMessage kOutFmtCompResourcesHeader =
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│                    Computational resources                    │\n"
+    "├───────────────────────────────────────────────────────────────┤\n";
+/// Output message.
+OutputMessage kOutFmtSimulationHeader =
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│                          Simulation                           │\n"
+    "├──────────┬────────────────┬──────────────┬────────────────────┤\n"
+    "│ Progress │  Elapsed time  │  Time to go  │  Est. finish time  │\n"
+    "├──────────┼────────────────┼──────────────┼────────────────────┤\n";
+/// Output message.
+OutputMessage kOutFmtSimulationProgress =
+    "│    %2li%c   │    %9.3fs  │  %9.3fs  │  %02i/%02i/%02i %02i:%02i:%02i "
+    "│\n";
+/// Output message.
+OutputMessage kOutFmtSimulationEndSeparator =
+    "├──────────┴────────────────┴──────────────┴────────────────────┤\n";
+/// Output message.
+OutputMessage kOutFmtSimulatoinFinalSeparator =
+    "└──────────┴────────────────┴──────────────┴────────────────────┘\n";
+/// Output message.
+OutputMessage kOutFmtCheckpointHeader =
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│                         Checkpointing                         │\n"
+    "├───────────────────────────────────────────────────────────────┤\n";
+/// Output message.
+OutputMessage kOutFmtSummaryHeader =
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│                            Summary                            │\n"
+    "├───────────────────────────────────────────────────────────────┤\n";
+/// Output message.
+OutputMessage kOutFmtEndOfSimulation =
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│                       End of computation                      │\n"
+    "└───────────────────────────────────────────────────────────────┘\n";
+
+//------------------------------------------------ Print code version
+//------------------------------------------------//
+/// Print version output message.
+OutputMessage kOutFmtBuildNoDataTime =
+    "│                       Build information                       │\n"
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│ Build number:     kspaceFirstOrder v2.17                      │\n"
+    "│ Build date:       %*.*s                                 │\n"
+    "│ Build time:       %*.*s                                    │\n";
+
+/// Print version output message.
+OutputMessage kOutFmtLicense =
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│ Contact email:    jarosjir@fit.vutbr.cz                       │\n"
+    "│ Contact web:      http://www.k-wave.org                       │\n"
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│ Copyright (C) 2011-2020 SC@FIT Research Group, BUT, Czech Rep │\n"
+    "└───────────────────────────────────────────────────────────────┘\n";
+
 //------------------------------------------------- Common outputs
 //---------------------------------------------------//
 /// Output message.
 OutputMessage kOutFmtCodeName = kOutFmtVerticalLine +
-                                "                   %s                   " +
-                                kOutFmtEol;
+                               "                   %s                   " +
+                               kOutFmtEol;
 /// Output message.
 OutputMessage kOutFmtKWaveVersion = "kspaceFirstOrder-OMP v1.3";
 
@@ -466,5 +569,18 @@ OutputMessage kOutFmtSensorMaskCuboid =
     kOutFmtVerticalLine +
     " Sensor mask type:                                      Cuboid " +
     kOutFmtEol;
+
+/// Output message - usage.
+OutputMessage kOutFmtUsagePart1 =
+    "Usage: kspaceFirstOrder-OMP [options] -i input_filename -o "
+    "output_filename\n";
+/// Output message - usage.
+OutputMessage kOutFmtUsageThreads =
+    "       -t, --threads      ... number of threads\n";
+/// Output message - usage.
+OutputMessage kOutFmtUsagePart2 =
+    "       -c, --check        ... create checkpoint file\n"
+    "       -h, --help         ... print this message\n"
+    "       -v, --version      ... print version of the code\n";
 
 #endif /* OUTPUT_MESSAGES_H */

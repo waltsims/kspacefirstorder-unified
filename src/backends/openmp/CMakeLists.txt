@@ -19,7 +19,12 @@ if(USE_OPENMP)
     )
 
     # Link FFTW libraries
-    target_link_libraries(kspace_openmp PUBLIC ${FFTW_LIBRARIES})
+    if(FFTW_FOUND)
+        target_link_libraries(kspace_openmp PUBLIC ${FFTW_LIBRARIES})
+        target_include_directories(kspace_openmp PUBLIC ${FFTW_INCLUDE_DIRS})
+    else()
+        message(FATAL_ERROR "FFTW3 not found but required for OpenMP backend")
+    endif()
 
     # Link to core library for shared headers
     target_link_libraries(kspace_openmp PRIVATE kspace_core)
@@ -28,9 +33,20 @@ if(USE_OPENMP)
     if(OpenMP_CXX_FOUND)
         target_link_libraries(kspace_openmp PUBLIC OpenMP::OpenMP_CXX)
     else()
-        # For Apple Clang, we might need to use libomp from Homebrew or build without OpenMP
-        message(STATUS "OpenMP not found - building without OpenMP threading support")
+        # Check if OpenMP is not supported (Apple Clang case)
+        if(TARGET kspace_openmp_flags AND "${kspace_openmp_flags}" MATCHES "_OPENMP_NOT_SUPPORTED")
+            message(STATUS "OpenMP not supported on this platform - building without threading")
+        else()
+            message(STATUS "OpenMP package not found - will rely on -fopenmp flags")
+        endif()
     endif()
+
+    target_link_libraries(kspace_openmp PUBLIC kspace_openmp_flags)
+
+    # Public include directories
+    target_include_directories(kspace_openmp PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
 endif()
 
 

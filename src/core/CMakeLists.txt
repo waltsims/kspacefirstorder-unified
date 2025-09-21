@@ -51,6 +51,17 @@ set_target_properties(kspace_core PROPERTIES
     CXX_STANDARD 11
     CXX_STANDARD_REQUIRED ON
 )
+
+# Link interface libraries to core
+target_link_libraries(kspace_core PUBLIC 
+    kspace_compiler_flags
+)
+if(USE_OPENMP)
+    target_link_libraries(kspace_core PUBLIC
+        kspace_openmp_flags
+    )
+endif()
+
 target_include_directories(kspace_core PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
@@ -79,6 +90,11 @@ elseif(PLATFORM_WINDOWS)
 endif()
 
 # Add FFTW includes if using OpenMP
-if(USE_OPENMP AND FFTW_FOUND)
-    target_include_directories(kspace_core PUBLIC ${FFTW_INCLUDE_DIRS})
+if(USE_OPENMP)
+    if(FFTW_FOUND)
+        target_include_directories(kspace_core PUBLIC ${FFTW_INCLUDE_DIRS})
+    else()
+        # FFTW should be available when USE_OPENMP is ON
+        message(FATAL_ERROR "FFTW3 not found but required for OpenMP backend")
+    endif()
 endif()

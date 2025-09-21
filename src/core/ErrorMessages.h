@@ -6,9 +6,7 @@
  *            Brno University of Technology \n
  *            jarosjir@fit.vutbr.cz
  *
- * @brief     The header file containing error messages common for both linux
- * and windows versions. The specific error messages are in separate files
- * ErrorMessagesLinux.h and ErrorMessagesWindows.h
+ * @brief     The header file containing error messages for the k-Wave solver.
  *
  * @version   kspaceFirstOrder 2.17
  *
@@ -39,20 +37,33 @@
 #ifndef ERROR_MESSAGES_H
 #define ERROR_MESSAGES_H
 
-// Platform-specific includes
-#ifdef __PLATFORM_WINDOWS__
-#include <platforms/windows/ErrorMessagesWindows.h>
-#elif defined(__PLATFORM_LINUX__) || defined(__PLATFORM_MACOS__)
-#include <platforms/unix/ErrorMessagesLinux.h>
-#endif
+#include <string>
 
-//--------------------------------------------------------------------------------------------------------------------//
-//-------------------------------- Common error messages for both Linux and
-// Windows ----------------------------------//
-//--------------------------------------------------------------------------------------------------------------------//
+/**
+ * @brief   Datatype for error messages.
+ * @details Datatype for error messages.
+ */
+using ErrorMessage = const std::string;
 
-/// Delimiters for linux and windows paths.
+//------------------------------------------------- Error message formatting
+//---------------------------------------------------//
+/// Error message header.
+ErrorMessage kErrFmtHead =
+    "┌───────────────────────────────────────────────────────────────┐\n"
+    "│            !!! K-Wave experienced a fatal error !!!           │\n"
+    "├───────────────────────────────────────────────────────────────┤\n";
+
+/// Error message tailer.
+ErrorMessage kErrFmtTail =
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│                      Execution terminated                     │\n"
+    "└───────────────────────────────────────────────────────────────┘\n";
+
+/// Delimiters for paths.
 ErrorMessage kErrFmtPathDelimiters = "/\\_,.:-| ()[]{}";
+
+//------------------------------------------------- Common error messages
+//---------------------------------------------------//
 /// Error message.
 ErrorMessage kErrFmtOutOfMemory =
     "Error: Not enough memory to run the simulation.";

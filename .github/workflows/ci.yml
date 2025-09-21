@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          # Linux builds
+          - os: ubuntu-latest
+            name: linux-openmp
+            cmake_flags: "-DUSE_CUDA=OFF -DUSE_OPENMP=ON"
+            dependencies: "build-essential cmake pkg-config libhdf5-dev libfftw3-dev"
+            setup_cuda: false
+          - os: ubuntu-latest
+            name: linux-cuda
+            cmake_flags: "-DUSE_CUDA=ON -DUSE_OPENMP=OFF"
+            dependencies: "build-essential cmake pkg-config libhdf5-dev"
+            setup_cuda: true
+
+          # macOS builds
+          - os: macos-latest
+            name: macos-openmp
+            cmake_flags: "-DUSE_CUDA=OFF -DUSE_OPENMP=ON"
+            dependencies: "cmake pkg-config hdf5 fftw libomp"
+            setup_cuda: false
+
+          # Windows builds
+          - os: windows-latest
+            name: windows-openmp
+            cmake_flags: "-DUSE_CUDA=OFF -DUSE_OPENMP=ON"
+            dependencies: "cmake hdf5 fftw"
+            setup_cuda: false
+          - os: windows-latest
+            name: windows-cuda
+            cmake_flags: "-DUSE_CUDA=ON -DUSE_OPENMP=OFF"
+            dependencies: "cmake hdf5"
+            setup_cuda: true
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} - ${{ matrix.name }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install CUDA Toolkit
+      if: matrix.setup_cuda
+      uses: Jimver/cuda-toolkit@v0.2.14
+      with:
+        cuda: '12.3.2'
+
+    - name: Install dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ${{ matrix.dependencies }}
+
+    - name: Install dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install ${{ matrix.dependencies }}
+
+    - name: Install dependencies (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        choco install ${{ matrix.dependencies }} -y
+
+    - name: Configure CMake
+      run: |
+        $CMAKE_PREFIX_PATH_ARGS=""
+        if [ "$RUNNER_OS" = "macOS" ]; then
+          CMAKE_PREFIX_PATH_ARGS="-DCMAKE_PREFIX_PATH=$(brew --prefix hdf5);$(brew --prefix fftw);$(brew --prefix libomp)"
+        fi
+        cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release $CMAKE_PREFIX_PATH_ARGS
+
+    - name: Build (Unix)
+      if: runner.os != 'Windows'
+      run: |
+        if [ "$RUNNER_OS" = "Linux" ]; then
+          cmake --build build -j$(nproc) --verbose
+        else
+          cmake --build build -j$(sysctl -n hw.ncpu) --verbose
+        fi
+      shell: bash
+
+    - name: Build (Windows)
+      if: runner.os == 'Windows'
+      run: cmake --build build --config Release -j --verbose
+    
+    - name: Build diagnostics
+      if: failure()
+      shell: bash
+      run: |
+        echo "Build failed, showing CMake cache..."
+        cat build/CMakeCache.txt | grep -E "(OpenMP|FFTW|HDF5|CUDA)" || true
+        echo "Showing CMake error log..."
+        cat build/CMakeFiles/CMakeError.log 2>/dev/null || echo "No CMakeError.log found"
+    
+    - name: Test executable exists (Unix)
+      if: runner.os != 'Windows'
+      run: test -f build/src/kspaceFirstOrder
+
+    - name: Test executable exists (Windows)
+      if: runner.os == 'Windows'
+      run: Test-Path build/src/Release/kspaceFirstOrder.exe
+      shell: powershell
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: kspaceFirstOrder-${{ matrix.name }}
+        path: |
+          build/src/kspaceFirstOrder
+          build/src/Release/kspaceFirstOrder.exe
+        if-no-files-found: ignore

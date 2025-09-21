@@ -42,7 +42,6 @@ This project is a unified C++ implementation of the k-Wave toolbox that accelera
 
 - **C++ Compiler**: C++11 compatible (GCC 6.0+, Clang 5.0+, MSVC 2017+)
 - **CMake**: Version 3.18 or higher
-- **Git**: For cloning the repository
 
 ### Dependencies
 
@@ -50,19 +49,8 @@ This project uses CMake's `FetchContent` to automatically download and build its
 
 ## Building
 
-### Recommended Build Process
-
-The standard way to build this project is with CMake and a C++11 compatible compiler. The project uses `FetchContent` to download and build dependencies automatically.
-
-To avoid long build times when dependencies are compiled from source, we **strongly recommend** using a compiler cache like [sccache](https://github.com/mozilla/sccache). This will cache the compiled artifacts, making subsequent builds nearly instantaneous.
-
-1.  **Install `sccache`:**
-    -   **macOS:** `brew install sccache`
-    -   **Windows:** `choco install sccache`
-    -   **Linux:** Follow the [official installation instructions](https://github.com/mozilla/sccache).
-
-2.  **Configure and Build:**
-    Simply create a build directory and run CMake. The build system will automatically detect and use `sccache` if it is installed.
+1.  **Configure and Build:**
+    Simply create a build directory and run CMake.
 
     ```bash
     # Clone the repository

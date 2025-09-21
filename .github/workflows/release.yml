@@ -27,24 +27,14 @@ jobs:
             cmake_flags: "-DUSE_CUDA=ON -DUSE_OPENMP=OFF"
             artifact_path: "build/src/kspaceFirstOrder"
             setup_cuda: true
-          - os: ubuntu-latest
-            name: linux-dual
-            cmake_flags: "-DUSE_CUDA=ON -DUSE_OPENMP=ON"
-            artifact_path: "build/src/kspaceFirstOrder"
-            setup_cuda: true
-          
+
           # macOS builds
           - os: macos-latest
             name: macos-openmp
             cmake_flags: "-DUSE_CUDA=OFF -DUSE_OPENMP=ON"
             artifact_path: "build/src/kspaceFirstOrder"
             setup_cuda: false
-          - os: macos-latest
-            name: macos-core
-            cmake_flags: "-DUSE_CUDA=OFF -DUSE_OPENMP=OFF"
-            artifact_path: "build/src/kspaceFirstOrder"
-            setup_cuda: false
-          
+
           # Windows builds
           - os: windows-latest
             name: windows-openmp
@@ -54,11 +44,6 @@ jobs:
           - os: windows-latest
             name: windows-cuda
             cmake_flags: "-DUSE_CUDA=ON -DUSE_OPENMP=OFF"
-            artifact_path: "build/src/Release/kspaceFirstOrder.exe"
-            setup_cuda: true
-          - os: windows-latest
-            name: windows-dual
-            cmake_flags: "-DUSE_CUDA=ON -DUSE_OPENMP=ON"
             artifact_path: "build/src/Release/kspaceFirstOrder.exe"
             setup_cuda: true
 
