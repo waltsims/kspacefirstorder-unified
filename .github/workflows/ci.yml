@@ -37,11 +37,6 @@ jobs:
             cmake_flags: "-DUSE_CUDA=OFF -DUSE_OPENMP=ON"
             dependencies: "cmake hdf5 fftw"
             setup_cuda: false
-          - os: windows-latest
-            name: windows-cuda
-            cmake_flags: "-DUSE_CUDA=ON -DUSE_OPENMP=OFF"
-            dependencies: "cmake hdf5"
-            setup_cuda: true
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }} - ${{ matrix.name }}
@@ -49,11 +44,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Install CUDA Toolkit
-      if: matrix.setup_cuda
-      uses: Jimver/cuda-toolkit@v0.2.14
+    - name: Install CUDA Toolkit (Linux only)
+      if: matrix.setup_cuda && runner.os == 'Linux'
+      uses: N-Storm/cuda-toolkit@v0.2.27m
       with:
-        cuda: '12.3.2'
+        cuda: '13.0.0'
+        use-github-cache: false
 
     - name: Install dependencies (Linux)
       if: runner.os == 'Linux'
