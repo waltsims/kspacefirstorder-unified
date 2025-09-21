@@ -63,20 +63,33 @@ jobs:
     - name: Install dependencies (macOS)
       if: runner.os == 'macOS'
       run: |
-        brew install ${{ matrix.dependencies }}
+        brew install ${{ matrix.dependencies }} gcc
 
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
       run: |
         choco install ${{ matrix.dependencies }} -y
 
-    - name: Configure CMake
+    - name: Configure CMake (macOS)
+      if: runner.os == 'macOS'
       run: |
-        $CMAKE_PREFIX_PATH_ARGS=""
-        if [ "$RUNNER_OS" = "macOS" ]; then
-          CMAKE_PREFIX_PATH_ARGS="-DCMAKE_PREFIX_PATH=$(brew --prefix hdf5);$(brew --prefix fftw);$(brew --prefix libomp)"
-        fi
-        cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release $CMAKE_PREFIX_PATH_ARGS
+        echo "Using GCC with Homebrew libomp:"
+        which gcc g++
+        gcc --version | head -1
+        g++ --version | head -1
+
+        export CC=gcc
+        export CXX=g++
+
+        cmake -B build \
+          ${{ matrix.cmake_flags }} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_PREFIX_PATH="$(brew --prefix hdf5);$(brew --prefix fftw);$(brew --prefix libomp)"
+
+    - name: Configure CMake (non-macOS)
+      if: runner.os != 'macOS'
+      run: |
+        cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release
 
     - name: Build (Unix)
       if: runner.os != 'Windows'
@@ -103,7 +116,7 @@ jobs:
     
     - name: Test executable exists (Unix)
       if: runner.os != 'Windows'
-      run: test -f build/src/kspaceFirstOrder
+      run: test -f build/src/Release/kspaceFirstOrder || test -f build/src/kspaceFirstOrder
 
     - name: Test executable exists (Windows)
       if: runner.os == 'Windows'
@@ -116,5 +129,6 @@ jobs:
         name: kspaceFirstOrder-${{ matrix.name }}
         path: |
           build/src/kspaceFirstOrder
+          build/src/Release/kspaceFirstOrder
           build/src/Release/kspaceFirstOrder.exe
         if-no-files-found: ignore
