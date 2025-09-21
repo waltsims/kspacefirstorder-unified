@@ -37,6 +37,12 @@ jobs:
             cmake_flags: "-DUSE_CUDA=OFF -DUSE_OPENMP=ON"
             dependencies: "cmake hdf5 fftw"
             setup_cuda: false
+          # Windows CUDA build (compile/link only on hosted runners; no GPU runtime)
+          - os: windows-latest
+            name: windows-cuda
+            cmake_flags: "-DUSE_CUDA=ON -DUSE_OPENMP=OFF"
+            dependencies: "cmake hdf5"
+            setup_cuda: true
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }} - ${{ matrix.name }}
@@ -66,6 +72,21 @@ jobs:
       if: runner.os == 'Windows'
       run: |
         choco install ${{ matrix.dependencies }} -y
+
+    # Install CUDA Toolkit on Windows hosted runners using NVIDIA's network installer.
+    # This enables building CUDA code (nvcc and headers) but does NOT provide a GPU for runtime tests.
+    # For GPU runtime testing, use a self-hosted Windows runner with NVIDIA drivers.
+    - name: Install CUDA 13.0 on Windows
+      if: matrix.setup_cuda && runner.os == 'Windows'
+      shell: bash
+      timeout-minutes: 30
+      run: |
+        set -e
+        curl -Lo cuda_13.0.0_windows_network.exe https://developer.download.nvidia.com/compute/cuda/13.0.0/network_installers/cuda_13.0.0_windows_network.exe
+        powershell -Command "Start-Process -FilePath cuda_13.0.0_windows_network.exe -ArgumentList '-s','-n' -Wait"
+        rm -f ./cuda_13.0.0_windows_network.exe
+        echo "CUDA_PATH=C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.0" >> $GITHUB_ENV
+        echo "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.0\\bin" >> $GITHUB_PATH
 
     - name: Configure CMake (macOS)
       if: runner.os == 'macOS'
