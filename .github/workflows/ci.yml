@@ -134,7 +134,7 @@ jobs:
     
     - name: Test executable exists (Unix)
       if: runner.os != 'Windows'
-      run: test -f build/bin/kspaceFirstOrder
+      run: test -f build/src/Release/kspaceFirstOrder
 
     - name: Test executable exists (Windows)
       if: runner.os == 'Windows'
@@ -146,6 +146,6 @@ jobs:
       with:
         name: kspaceFirstOrder-${{ matrix.name }}
         path: |
-          build/bin/kspaceFirstOrder
+          build/src/Release/kspaceFirstOrder
           build/src/Release/kspaceFirstOrder.exe
         if-no-files-found: ignore
