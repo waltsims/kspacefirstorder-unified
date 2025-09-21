@@ -73,14 +73,15 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        git clone https://github.com/microsoft/vcpkg $env:VCPKG_ROOT
-        cd $env:VCPKG_ROOT
-        .\bootstrap-vcpkg.bat
-        .\vcpkg.exe integrate install
+        $VCPKG_ROOT = Join-Path $env:RUNNER_TEMP "vcpkg"
+        git clone https://github.com/microsoft/vcpkg $VCPKG_ROOT
+        $env:VCPKG_ROOT = $VCPKG_ROOT
+        & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat"
+        & "$env:VCPKG_ROOT\vcpkg.exe" integrate install
         # Install required libraries
-        .\vcpkg.exe install hdf5:x64-windows fftw3:x64-windows
-        echo "VCPKG_ROOT=$env:VCPKG_ROOT" | Out-File -Encoding utf8 -Append -FilePath $env:GITHUB_ENV
-        echo "$env:VCPKG_ROOT\installed\x64-windows\bin" | Out-File -Encoding utf8 -Append -FilePath $env:GITHUB_PATH
+        & "$env:VCPKG_ROOT\vcpkg.exe" install hdf5:x64-windows fftw3:x64-windows
+        "VCPKG_ROOT=$env:VCPKG_ROOT" | Out-File -Encoding utf8 -Append -FilePath $env:GITHUB_ENV
+        "$env:VCPKG_ROOT\installed\x64-windows\bin" | Out-File -Encoding utf8 -Append -FilePath $env:GITHUB_PATH
 
     # Install CUDA Toolkit on Windows hosted runners using NVIDIA's network installer.
     # This enables building CUDA code (nvcc and headers) but does NOT provide a GPU for runtime tests.
@@ -113,16 +114,16 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_PREFIX_PATH="$(brew --prefix hdf5);$(brew --prefix fftw);$(brew --prefix libomp)"
 
-    - name: Configure CMake (non-macOS)
-      if: runner.os != 'macOS'
+    - name: Configure CMake (Linux)
+      if: runner.os == 'Linux'
       run: |
-        TOOLCHAIN_ARG=""
-        TRIPLET_ARG=""
-        if [ "$RUNNER_OS" = "Windows" ]; then
-          TOOLCHAIN_ARG="-DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake"
-          TRIPLET_ARG="-DVCPKG_TARGET_TRIPLET=x64-windows"
-        fi
-        cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release $TOOLCHAIN_ARG $TRIPLET_ARG
+        cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release
+
+    - name: Configure CMake (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
 
     - name: Build (Unix)
       if: runner.os != 'Windows'
