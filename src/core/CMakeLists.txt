@@ -56,6 +56,10 @@ set_target_properties(kspace_core PROPERTIES
 target_link_libraries(kspace_core PUBLIC 
     kspace_compiler_flags
 )
+if(USE_CUDA)
+    # Expose CUDA headers (e.g., cufft.h) to any target including core headers
+    target_link_libraries(kspace_core PUBLIC CUDA::cufft CUDA::cudart)
+endif()
 if(USE_OPENMP)
     target_link_libraries(kspace_core PUBLIC
         kspace_openmp_flags
