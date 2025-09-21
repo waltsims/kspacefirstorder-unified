@@ -570,17 +570,75 @@ OutputMessage kOutFmtSensorMaskCuboid =
     " Sensor mask type:                                      Cuboid " +
     kOutFmtEol;
 
-/// Output message - usage.
+// ---------------------------------------------------- Usage (boxed, unified)
+/// Usage massage.
 OutputMessage kOutFmtUsagePart1 =
-    "Usage: kspaceFirstOrder-OMP [options] -i input_filename -o "
-    "output_filename\n";
-/// Output message - usage.
-OutputMessage kOutFmtUsageThreads =
-    "       -t, --threads      ... number of threads\n";
-/// Output message - usage.
+    "│                             Usage                             │\n"
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│                     Mandatory parameters                      │\n"
+    "├───────────────────────────────────────────────────────────────┤\n"
+    "│ -i <file_name>                │ HDF5 input file               │\n"
+    "│ -o <file_name>                │ HDF5 output file              │\n"
+    "├───────────────────────────────┴───────────────────────────────┤\n"
+    "│                      Optional parameters                      │\n"
+    "├───────────────────────────────┬───────────────────────────────┤\n";
+/// Usage massage.
 OutputMessage kOutFmtUsagePart2 =
-    "       -c, --check        ... create checkpoint file\n"
-    "       -h, --help         ... print this message\n"
-    "       -v, --version      ... print version of the code\n";
+    "│ -r <interval_in_%%>            │ Progress print interval       │\n"
+    "│                               │   (default = %2ld%%)             │\n"
+    "│ -c <compression_level>        │ Compression level <0,9>       │\n"
+    "│                               │   (default = %1ld)               │\n"
+    "│ --benchmark <time_steps>      │ Run only a specified number   │\n"
+    "│                               │   of time steps               │\n"
+    "│ --verbose <level>             │ Level of verbosity <0,2>      │\n"
+    "│                               │   0 - basic, 1 - advanced,    │\n"
+    "│                               │   2 - full                    │\n"
+    "│                               │   (default = basic)           │\n"
+    "│ -h, --help                    │ Print help                    │\n"
+    "│ --version                     │ Print version and build info  │\n"
+    "├───────────────────────────────┼───────────────────────────────┤\n"
+    "│ --checkpoint_file <file_name> │ HDF5 checkpoint file          │\n"
+    "│ --checkpoint_interval <sec>   │ Checkpoint after a given      │\n"
+    "│                               │   number of seconds           │\n"
+    "│ --checkpoint_timesteps <step> │ Checkpoint after a given      │\n"
+    "│                               │   number of time steps        │\n"
+    "├───────────────────────────────┴───────────────────────────────┤\n"
+    "│                          Output flags                         │\n"
+    "├───────────────────────────────┬───────────────────────────────┤\n"
+    "│ -p                            │ Store acoustic pressure       │\n"
+    "│                               │   (default output flag)       │\n"
+    "│                               │   (the same as --p_raw)       │\n"
+    "│ --p_raw                       │ Store raw time series of p    │\n"
+    "│ --p_rms                       │ Store rms of p                │\n"
+    "│ --p_max                       │ Store max of p                │\n"
+    "│ --p_min                       │ Store min of p                │\n"
+    "│ --p_max_all                   │ Store max of p (whole domain) │\n"
+    "│ --p_min_all                   │ Store min of p (whole domain) │\n"
+    "│ --p_final                     │ Store final pressure field    │\n"
+    "├───────────────────────────────┼───────────────────────────────┤\n"
+    "│ -u                            │ Store ux, uy, uz              │\n"
+    "│                               │    (the same as --u_raw)      │\n"
+    "│ --u_raw                       │ Store raw time series of      │\n"
+    "│                               │    ux, uy, uz                 │\n"
+    "│ --u_non_staggered_raw         │ Store non-staggered raw time  │\n"
+    "│                               │   series of ux, uy, uz        │\n"
+    "│ --u_rms                       │ Store rms of ux, uy, uz       │\n"
+    "│ --u_max                       │ Store max of ux, uy, uz       │\n"
+    "│ --u_min                       │ Store min of ux, uy, uz       │\n"
+    "│ --u_max_all                   │ Store max of ux, uy, uz       │\n"
+    "│                               │   (whole domain)              │\n"
+    "│ --u_min_all                   │ Store min of ux, uy, uz       │\n"
+    "│                               │   (whole domain)              │\n"
+    "│ --u_final                     │ Store final acoustic velocity │\n"
+    "├───────────────────────────────┼───────────────────────────────┤\n"
+    "│ -s <time_step>                │ When data collection begins   │\n"
+    "│                               │   (default = 1)               │\n"
+    "│ --copy_sensor_mask            │ Copy sensor mask to the       │\n"
+    "│                               │    output file                │\n"
+    "└───────────────────────────────┴───────────────────────────────┘\n";
+/// Usage massage.
+OutputMessage kOutFmtUsageThreads =
+    "│ -t <num_threads>              │ Number of CPU threads         │\n"
+    "│                               │  (default = %3d)              │\n";
 
 #endif /* OUTPUT_MESSAGES_H */
