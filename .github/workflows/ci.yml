@@ -80,10 +80,10 @@ jobs:
       if: runner.os == 'Windows' && matrix.needs_hdf5
       shell: powershell
       run: |
-        $hdf5_url = "https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.14/hdf5-1.14.3/bin/windows/HDF5-1.14.3-win64.zip"
+        $hdf5_url = "https://support.hdfgroup.org/releases/hdf5/v1_14/v1_14_6/downloads/hdf5-1.14.6-win-vs2022_cl.zip"
         Invoke-WebRequest -Uri $hdf5_url -OutFile hdf5.zip
         7z x hdf5.zip -o"C:\"
-        $hdf5_path = "C:\HDF_Group\HDF5\1.14.3"
+        $hdf5_path = "C:\HDF_Group\HDF5\1.14.6"
         echo "HDF5_ROOT=$hdf5_path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         echo "$hdf5_path\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
