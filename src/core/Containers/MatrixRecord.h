@@ -69,7 +69,7 @@ struct MatrixRecord {
         dimensionSizes(),
         loadData(false),
         checkpoint(false),
-        matrixName() {};
+        matrixName() {}
 
   /**
    * @brief Set all values for the record.
@@ -87,7 +87,7 @@ struct MatrixRecord {
         dimensionSizes(dimensionSizes),
         loadData(loadData),
         checkpoint(checkpoint),
-        matrixName(matrixName) {};
+        matrixName(matrixName) {}
 
   /// Copy constructor.
   MatrixRecord(const MatrixRecord&) = default;

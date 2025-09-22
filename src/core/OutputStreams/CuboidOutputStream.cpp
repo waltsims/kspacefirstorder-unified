@@ -406,7 +406,7 @@ void CuboidOutputStream::sampleAggregated() {
       }  // y
     }  // z
 
-// Must be done only once
+    // Must be done only once
 #pragma omp single
     {
       cuboidInBufferStart += (bottomRightCorner - topLeftCorner).nElements();

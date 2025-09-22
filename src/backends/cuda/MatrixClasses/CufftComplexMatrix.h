@@ -66,7 +66,7 @@ class CufftComplexMatrix : public ComplexMatrix {
    * @param [in] dimensionSizes - Dimension sizes of the matrix.
    */
   CufftComplexMatrix(const DimensionSizes& dimensionSizes)
-      : ComplexMatrix(dimensionSizes) {};
+      : ComplexMatrix(dimensionSizes) {}
   /// Copy constructor not allowed.
   CufftComplexMatrix(const CufftComplexMatrix&) = delete;
   /// Destructor (Inherited from ComplexMatrix).

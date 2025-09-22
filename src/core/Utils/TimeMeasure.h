@@ -52,7 +52,7 @@ class TimeMeasure {
  public:
   /// Default constructor.
   TimeMeasure()
-      : mStartTime(0.0), mStopTime(0.0), mElapsedTimeOverPreviousLegs(0.0) {};
+      : mStartTime(0.0), mStopTime(0.0), mElapsedTimeOverPreviousLegs(0.0) {}
 
   /// Copy constructor.
   TimeMeasure(const TimeMeasure&) = default;

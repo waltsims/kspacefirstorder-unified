@@ -75,7 +75,7 @@ constexpr int kDataAlignment = 64;
  */
 struct DimensionSizes {
   /// Default constructor.
-  DimensionSizes() : nx(0), ny(0), nz(0), nt(0) {};
+  DimensionSizes() : nx(0), ny(0), nz(0), nt(0) {}
 
   /**
    * @brief Constructor.
@@ -85,7 +85,7 @@ struct DimensionSizes {
    * @param [in] t - Number of time steps.
    */
   DimensionSizes(size_t x, size_t y, size_t z = 1, size_t t = 0)
-      : nx(x), ny(y), nz(z), nt(t) {};
+      : nx(x), ny(y), nz(z), nt(t) {}
 
   /// Default copy constructor.
   DimensionSizes(const DimensionSizes&) = default;
