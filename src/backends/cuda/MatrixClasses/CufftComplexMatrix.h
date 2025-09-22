@@ -38,7 +38,7 @@
 #ifndef CUFFT_COMPLEX_MATRIX_H
 #define CUFFT_COMPLEX_MATRIX_H
 
-#include <ErrorMessages.h>
+#include <Logger/ErrorMessages.h>
 #include <MatrixClasses/ComplexMatrix.h>
 #include <cufft.h>
 

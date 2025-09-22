@@ -19,8 +19,12 @@ if(USE_OPENMP)
     )
 
     # Link FFTW libraries
-    target_link_libraries(kspace_openmp PUBLIC ${FFTW3F_LIBRARIES})
-    target_include_directories(kspace_openmp PUBLIC ${FFTW3F_INCLUDE_DIRS})
+    if(FFTW_FOUND)
+        target_link_libraries(kspace_openmp PUBLIC ${FFTW_LIBRARIES})
+        target_include_directories(kspace_openmp PUBLIC ${FFTW_INCLUDE_DIRS})
+    else()
+        message(FATAL_ERROR "FFTW3 not found but required for OpenMP backend")
+    endif()
 
     # Link to core library for shared headers
     target_link_libraries(kspace_openmp PRIVATE kspace_core)

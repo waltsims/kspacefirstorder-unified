@@ -34,8 +34,15 @@
  * [http://www.gnu.org/licenses/](http://www.gnu.org/licenses/).
  */
 
-// POSIX & Windows (via vcpkg wingetopt)
+// Linux build
+#if defined(__linux__) || defined(__APPLE__)
 #include <getopt.h>
+#endif
+
+// Windows build
+#ifdef _WIN64
+#include <GetoptWin64/Getopt.h>
+#endif
 
 #ifdef _OPENMP
 #include <omp.h>

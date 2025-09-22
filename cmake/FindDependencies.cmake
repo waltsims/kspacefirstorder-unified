@@ -1,16 +1,111 @@
-# Find required dependencies
-find_package(HDF5 REQUIRED)
-message(STATUS "✓ Found HDF5 ${HDF5_VERSION}")
-
-if(USE_OPENMP)
-    find_package(FFTW3f REQUIRED)
-    message(STATUS "✓ Found FFTW3f ${FFTW3f_VERSION}")
-    
-    find_package(OpenMP REQUIRED)
-    message(STATUS "✓ Found OpenMP ${OpenMP_CXX_VERSION}")
+# Find HDF5
+find_package(HDF5 COMPONENTS C CXX HL REQUIRED)
+if(NOT HDF5_FOUND)
+    message(FATAL_ERROR "HDF5 not found. Please install HDF5 with C++ support (see DEPENDENCIES.md)")
 endif()
 
+# Ensure high-level (H5LT) libs are linked
+if(DEFINED HDF5_HL_LIBRARIES)
+    list(APPEND HDF5_LIBRARIES ${HDF5_HL_LIBRARIES})
+endif()
+
+message(STATUS "✓ Found HDF5 ${HDF5_VERSION}")
+message(STATUS "  - Include dirs: ${HDF5_INCLUDE_DIRS}")
+message(STATUS "  - Libraries: ${HDF5_LIBRARIES}")
+
+# Find FFTW3 (for OpenMP backend)
+if(USE_OPENMP)
+    find_library(FFTW_LIBRARY
+        NAMES fftw3f libfftw3f
+        PATHS
+            /usr/lib
+            /usr/local/lib
+            /opt/local/lib
+            /opt/homebrew/lib
+    )
+    # Threads library for fftwf_init_threads/plan_with_nthreads
+    find_library(FFTW_THREADS_LIBRARY
+        NAMES fftw3f_threads libfftw3f_threads
+        PATHS
+            /usr/lib
+            /usr/local/lib
+            /opt/local/lib
+            /opt/homebrew/lib
+    )
+    find_path(FFTW_INCLUDE_DIR
+        NAMES fftw3.h
+        PATHS
+            /usr/include
+            /usr/local/include
+            /opt/local/include
+            /opt/homebrew/include
+    )
+    if(FFTW_LIBRARY AND FFTW_INCLUDE_DIR)
+        set(FFTW_FOUND TRUE)
+        set(FFTW_LIBRARIES ${FFTW_LIBRARY})
+        if(FFTW_THREADS_LIBRARY)
+            list(APPEND FFTW_LIBRARIES ${FFTW_THREADS_LIBRARY})
+        endif()
+        set(FFTW_INCLUDE_DIRS ${FFTW_INCLUDE_DIR})
+    endif()
+
+    if(NOT FFTW_FOUND)
+        message(FATAL_ERROR "FFTW3 (single precision) not found. Please install FFTW3 (see DEPENDENCIES.md)")
+    endif()
+
+    message(STATUS "✓ Found FFTW3 (single precision)")
+    message(STATUS "  - Include dirs: ${FFTW_INCLUDE_DIRS}")
+    message(STATUS "  - Libraries: ${FFTW_LIBRARIES}")
+endif()
+
+# Find CUDA (for CUDA backend)
 if(USE_CUDA)
-    find_package(CUDAToolkit REQUIRED)
-    message(STATUS "✓ Found CUDA Toolkit ${CUDAToolkit_VERSION}")
+    find_package(CUDAToolkit QUIET)
+    if(NOT CUDAToolkit_FOUND)
+        message(WARNING "CUDA Toolkit not found - CUDA backend will be disabled")
+        message(WARNING "Please install CUDA Toolkit to enable CUDA backend (see DEPENDENCIES.md)")
+        set(USE_CUDA OFF CACHE BOOL "" FORCE)
+    else()
+        message(STATUS "✓ Found CUDA Toolkit ${CUDAToolkit_VERSION}")
+        # Set CUDA architectures - support from Kepler to Hopper
+        set(CMAKE_CUDA_ARCHITECTURES 50 52 53 60 61 62 70 72 75 80 87 89 90 90a)
+        message(STATUS "  - CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES}")
+    endif()
+endif()
+
+# Find OpenMP
+if(USE_OPENMP)
+    find_package(OpenMP QUIET)
+    add_library(kspace_openmp_flags INTERFACE)
+
+    if(OpenMP_FOUND)
+        target_link_libraries(kspace_openmp_flags INTERFACE OpenMP::OpenMP_CXX)
+        message(STATUS "✓ Found OpenMP ${OpenMP_CXX_VERSION}")
+    else()
+        if(APPLE)
+            # On macOS, try to find Homebrew's libomp
+            find_program(BREW_CMD brew)
+            if(BREW_CMD)
+                execute_process(
+                    COMMAND ${BREW_CMD} --prefix libomp
+                    OUTPUT_VARIABLE LIBOMP_PREFIX
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                )
+                if(LIBOMP_PREFIX)
+                    target_compile_options(kspace_openmp_flags INTERFACE -Xclang -fopenmp)
+                    target_link_libraries(kspace_openmp_flags INTERFACE -lomp)
+                    target_include_directories(kspace_openmp_flags INTERFACE "${LIBOMP_PREFIX}/include")
+                    target_link_directories(kspace_openmp_flags INTERFACE "${LIBOMP_PREFIX}/lib")
+                    message(STATUS "✓ Using Homebrew's libomp from ${LIBOMP_PREFIX}")
+                else()
+                    message(WARNING "OpenMP not found. Please install libomp via Homebrew (see DEPENDENCIES.md)")
+                endif()
+            endif()
+        else()
+            # Try to enable OpenMP with -fopenmp for other compilers
+            target_compile_options(kspace_openmp_flags INTERFACE -fopenmp)
+            target_link_libraries(kspace_openmp_flags INTERFACE -fopenmp)
+            message(STATUS "✓ Using compiler's OpenMP support")
+        endif()
+    endif()
 endif()

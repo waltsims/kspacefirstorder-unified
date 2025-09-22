@@ -36,7 +36,9 @@ endif()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Core configuration
+include(PlatformDetection)
 include(CompilerFlags)
+include(BuildConfig)
 include(FindDependencies)
 
 # Build targets

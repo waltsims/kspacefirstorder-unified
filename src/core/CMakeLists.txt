@@ -56,10 +56,6 @@ set_target_properties(kspace_core PROPERTIES
 target_link_libraries(kspace_core PUBLIC 
     kspace_compiler_flags
 )
-if(USE_CUDA)
-    # Expose CUDA headers (e.g., cufft.h) to any target including core headers
-    target_link_libraries(kspace_core PUBLIC CUDA::cufft CUDA::cudart)
-endif()
 if(USE_OPENMP)
     target_link_libraries(kspace_core PUBLIC
         kspace_openmp_flags
@@ -85,10 +81,20 @@ if(USE_OPENMP AND TARGET kspace_openmp_flags)
 endif()
 
 # Add platform-specific definitions
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(PLATFORM_LINUX)
     target_compile_definitions(kspace_core PUBLIC __PLATFORM_LINUX__)
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+elseif(PLATFORM_MACOS)
     target_compile_definitions(kspace_core PUBLIC __PLATFORM_MACOS__)
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+elseif(PLATFORM_WINDOWS)
     target_compile_definitions(kspace_core PUBLIC __PLATFORM_WINDOWS__)
+endif()
+
+# Add FFTW includes if using OpenMP
+if(USE_OPENMP)
+    if(FFTW_FOUND)
+        target_include_directories(kspace_core PUBLIC ${FFTW_INCLUDE_DIRS})
+    else()
+        # FFTW should be available when USE_OPENMP is ON
+        message(FATAL_ERROR "FFTW3 not found but required for OpenMP backend")
+    endif()
 endif()

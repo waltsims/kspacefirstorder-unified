@@ -23,20 +23,21 @@ set_target_properties(kspaceFirstOrder PROPERTIES
 # Link core dependencies
 target_link_libraries(kspaceFirstOrder PRIVATE
     kspace_core
-    HDF5::HDF5
+    ${HDF5_LIBRARIES}
 )
 
 # Link backend-specific libraries
 if(USE_CUDA)
-    target_link_libraries(kspaceFirstOrder PRIVATE 
-        kspace_cuda
-    )
+    target_link_libraries(kspaceFirstOrder PRIVATE kspace_cuda)
 elseif(USE_OPENMP)
     target_link_libraries(kspaceFirstOrder PRIVATE 
         kspace_openmp
-        ${FFTW3F_LIBRARIES}
-        OpenMP::OpenMP_CXX
+        ${FFTW_LIBRARIES}
     )
 endif()
 
-# Include directories are handled by target_link_libraries with modern targets
+# Include directories
+target_include_directories(kspaceFirstOrder PRIVATE 
+    ${HDF5_INCLUDE_DIRS}
+    $<$<BOOL:${USE_OPENMP}>:${FFTW_INCLUDE_DIRS}>
+)

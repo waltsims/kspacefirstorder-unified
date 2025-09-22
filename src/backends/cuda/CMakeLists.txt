@@ -29,8 +29,9 @@ if(USE_CUDA)
     target_include_directories(kspace_cuda PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
     target_link_libraries(kspace_cuda
-        PUBLIC
+        PRIVATE
             kspace_core
+        PUBLIC
             CUDA::cudart
             CUDA::cufft
     )
