@@ -1,2 +1,4 @@
 build/*
 test_build/*
+build-vcpkg/*
+vcpkg-local/*
