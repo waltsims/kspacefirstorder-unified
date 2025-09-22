@@ -30,18 +30,7 @@ if(USE_OPENMP)
     target_link_libraries(kspace_openmp PRIVATE kspace_core)
     
     # Link OpenMP if found
-    if(OpenMP_CXX_FOUND)
-        target_link_libraries(kspace_openmp PUBLIC OpenMP::OpenMP_CXX)
-    else()
-        # Check if OpenMP is not supported (Apple Clang case)
-        if(TARGET kspace_openmp_flags AND "${kspace_openmp_flags}" MATCHES "_OPENMP_NOT_SUPPORTED")
-            message(STATUS "OpenMP not supported on this platform - building without threading")
-        else()
-            message(STATUS "OpenMP package not found - will rely on -fopenmp flags")
-        endif()
-    endif()
-
-    target_link_libraries(kspace_openmp PUBLIC kspace_openmp_flags)
+    target_link_libraries(kspace_openmp PUBLIC OpenMP::OpenMP_CXX)
 
     # Public include directories
     target_include_directories(kspace_openmp PUBLIC

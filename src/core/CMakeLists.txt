@@ -58,7 +58,7 @@ target_link_libraries(kspace_core PUBLIC
 )
 if(USE_OPENMP)
     target_link_libraries(kspace_core PUBLIC
-        kspace_openmp_flags
+        OpenMP::OpenMP_CXX
     )
 endif()
 
@@ -74,11 +74,6 @@ target_link_libraries(kspace_core PUBLIC ${HDF5_LIBRARIES})
 
 # Link compiler flags
 target_link_libraries(kspace_core PUBLIC kspace_compiler_flags)
-
-# Link OpenMP flags if enabled
-if(USE_OPENMP AND TARGET kspace_openmp_flags)
-    target_link_libraries(kspace_core PUBLIC kspace_openmp_flags)
-endif()
 
 # Add platform-specific definitions
 if(PLATFORM_LINUX)
