@@ -81,10 +81,17 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         VCPKG_ROOT="$RUNNER_TEMP/vcpkg"
+        # Detect architecture to choose correct triplet (Apple Silicon vs Intel)
+        if [ "$(uname -m)" = "arm64" ]; then
+          VCPKG_TRIPLET=arm64-osx
+        else
+          VCPKG_TRIPLET=x64-osx
+        fi
         git clone https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
         "$VCPKG_ROOT"/bootstrap-vcpkg.sh -disableMetrics
-        "$VCPKG_ROOT"/vcpkg install hdf5 fftw3[threads] --triplet x64-osx
+        "$VCPKG_ROOT"/vcpkg install hdf5 fftw3[threads] --triplet "$VCPKG_TRIPLET"
         echo "VCPKG_ROOT=$VCPKG_ROOT" >> "$GITHUB_ENV"
+        echo "VCPKG_TRIPLET=$VCPKG_TRIPLET" >> "$GITHUB_ENV"
 
     # Setup vcpkg on Windows for HDF5/FFTW (and toolchain integration)
     - name: Setup vcpkg (Windows)
@@ -131,7 +138,7 @@ jobs:
           ${{ matrix.cmake_flags }} \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
-          -DVCPKG_TARGET_TRIPLET=x64-osx
+          -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET"
 
     - name: Configure CMake (Linux)
       if: runner.os == 'Linux'
