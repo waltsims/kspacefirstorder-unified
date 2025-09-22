@@ -85,20 +85,10 @@ if(USE_OPENMP AND TARGET kspace_openmp_flags)
 endif()
 
 # Add platform-specific definitions
-if(PLATFORM_LINUX)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_compile_definitions(kspace_core PUBLIC __PLATFORM_LINUX__)
-elseif(PLATFORM_MACOS)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     target_compile_definitions(kspace_core PUBLIC __PLATFORM_MACOS__)
-elseif(PLATFORM_WINDOWS)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_compile_definitions(kspace_core PUBLIC __PLATFORM_WINDOWS__)
-endif()
-
-# Add FFTW includes if using OpenMP
-if(USE_OPENMP)
-    if(FFTW_FOUND)
-        target_include_directories(kspace_core PUBLIC ${FFTW_INCLUDE_DIRS})
-    else()
-        # FFTW should be available when USE_OPENMP is ON
-        message(FATAL_ERROR "FFTW3 not found but required for OpenMP backend")
-    endif()
 endif()
