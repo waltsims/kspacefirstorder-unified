@@ -16,19 +16,19 @@ jobs:
           - os: ubuntu-latest
             name: linux-openmp
             cmake_flags: "-DUSE_CUDA=OFF -DUSE_OPENMP=ON"
-            dependencies: "build-essential cmake pkg-config libhdf5-dev libfftw3-dev"
+            dependencies: "build-essential cmake pkg-config"
             setup_cuda: false
           - os: ubuntu-latest
             name: linux-cuda
             cmake_flags: "-DUSE_CUDA=ON -DUSE_OPENMP=OFF"
-            dependencies: "build-essential cmake pkg-config libhdf5-dev"
+            dependencies: "build-essential cmake pkg-config"
             setup_cuda: true
 
           # macOS builds
           - os: macos-latest
             name: macos-openmp
             cmake_flags: "-DUSE_CUDA=OFF -DUSE_OPENMP=ON"
-            dependencies: "cmake pkg-config hdf5 fftw libomp"
+            dependencies: "cmake pkg-config libomp"
             setup_cuda: false
 
           # Windows builds
@@ -63,10 +63,28 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y ${{ matrix.dependencies }}
 
+    - name: Setup vcpkg (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        VCPKG_ROOT="$RUNNER_TEMP/vcpkg"
+        git clone https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
+        "$VCPKG_ROOT"/bootstrap-vcpkg.sh -disableMetrics
+        "$VCPKG_ROOT"/vcpkg install hdf5 fftw3[threads] --triplet x64-linux
+        echo "VCPKG_ROOT=$VCPKG_ROOT" >> "$GITHUB_ENV"
+
     - name: Install dependencies (macOS)
       if: runner.os == 'macOS'
       run: |
         brew install ${{ matrix.dependencies }} gcc
+
+    - name: Setup vcpkg (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        VCPKG_ROOT="$RUNNER_TEMP/vcpkg"
+        git clone https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
+        "$VCPKG_ROOT"/bootstrap-vcpkg.sh -disableMetrics
+        "$VCPKG_ROOT"/vcpkg install hdf5 fftw3[threads] --triplet x64-osx
+        echo "VCPKG_ROOT=$VCPKG_ROOT" >> "$GITHUB_ENV"
 
     # Setup vcpkg on Windows for HDF5/FFTW (and toolchain integration)
     - name: Setup vcpkg (Windows)
@@ -112,12 +130,15 @@ jobs:
         cmake -B build \
           ${{ matrix.cmake_flags }} \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_PREFIX_PATH="$(brew --prefix hdf5);$(brew --prefix fftw);$(brew --prefix libomp)"
+          -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+          -DVCPKG_TARGET_TRIPLET=x64-osx
 
     - name: Configure CMake (Linux)
       if: runner.os == 'Linux'
       run: |
-        cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release
+        cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+          -DVCPKG_TARGET_TRIPLET=x64-linux
 
     - name: Configure CMake (Windows)
       if: runner.os == 'Windows'
