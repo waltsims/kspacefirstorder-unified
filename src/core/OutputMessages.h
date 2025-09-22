@@ -161,8 +161,11 @@ OutputMessage kOutFmtLicense =
 //---------------------------------------------------//
 /// Output message.
 OutputMessage kOutFmtCodeName = kOutFmtVerticalLine +
-                               "                   %s                   " +
-                               kOutFmtEol;
+                                "                   %s                   " +
+                                kOutFmtVerticalLine;
+/// Output message.
+OutputMessage kOutFmtHdf5Compression =
+    "   - HDF5 Data Compression                  : %s";
 /// Output message.
 OutputMessage kOutFmtKWaveVersion = "kspaceFirstOrder-OMP v1.3";
 

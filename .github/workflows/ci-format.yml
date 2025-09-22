@@ -42,4 +42,4 @@ jobs:
     - name: Check code formatting
       shell: bash
       run: |
-        find src -name "*.cpp" -o -name "*.h" -o -name "*.cu" -o -name "*.cuh" | xargs clang-format --dry-run --Werror --style=file
+        find src -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.cu" -o -name "*.cuh" \) -print0 | xargs -0 clang-format --dry-run --Werror --style=file
