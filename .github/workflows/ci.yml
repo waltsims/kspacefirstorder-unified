@@ -82,95 +82,10 @@ jobs:
       run: |
         $hdf5_url = "https://support.hdfgroup.org/releases/hdf5/v1_14/v1_14_6/downloads/hdf5-1.14.6-win-vs2022_cl.zip"
         Invoke-WebRequest -Uri $hdf5_url -OutFile hdf5.zip
-        Write-Host "Downloaded HDF5 zip file, size: $(Get-Item hdf5.zip).Length bytes"
-        Write-Host "Extracting HDF5 zip file..."
-        7z x hdf5.zip -o"C:\" -y
-        Write-Host "Extraction completed"
-
-        # Try to find the HDF5 directory based on expected naming patterns
-        $possible_names = @(
-            "HDF5-1.14.6",
-            "hdf5-1.14.6",
-            "HDF_Group",
-            "HDF5"
-        )
-
-        $hdf5_path = $null
-        foreach ($name in $possible_names) {
-            $test_path = "C:\$name"
-            if (Test-Path $test_path) {
-                $hdf5_path = $test_path
-                Write-Host "Found HDF5 directory: $hdf5_path"
-                break
-            }
-        }
-
-        # If still not found, try to detect based on content
-        if (-not $hdf5_path) {
-            Write-Host "Trying to detect HDF5 directory by content..."
-            $all_dirs = Get-ChildItem -Path "C:\" -Directory | Where-Object { $_.LastWriteTime -gt (Get-Date).AddMinutes(-10) }
-            foreach ($dir in $all_dirs) {
-                $dir_path = $dir.FullName
-                if (Test-Path "$dir_path\lib") {
-                    $lib_files = Get-ChildItem -Path "$dir_path\lib" -Name | Where-Object { $_ -like "*hdf*" }
-                    if ($lib_files.Count -gt 0) {
-                        $hdf5_path = $dir_path
-                        Write-Host "Found HDF5 directory by content detection: $hdf5_path"
-                        break
-                    }
-                }
-            }
-        }
-
-        if (-not $hdf5_path) {
-            Write-Host "Listing all directories in C:\ to debug..."
-            Get-ChildItem -Path "C:\" -Directory | ForEach-Object {
-                Write-Host "Directory: $($_.Name) - Modified: $($_.LastWriteTime)"
-            }
-            Write-Error "Could not find HDF5 installation directory after extraction"
-            exit 1
-        }
-
-        Write-Host "Selected HDF5 directory path: $hdf5_path"
-
-        # Validate the directory path
-        $dir_name = Split-Path $hdf5_path -Leaf
-        if ($dir_name.Length -le 2 -or $dir_name -notlike "*HDF*" -and $dir_name -notlike "*hdf*") {
-            Write-Warning "Directory name '$dir_name' doesn't look like a standard HDF5 installation directory"
-        }
-
-        # Verify this is actually an HDF5 installation
-        $has_hdf5_content = $false
-        if (Test-Path "$hdf5_path\lib") {
-            $lib_files = Get-ChildItem -Path "$hdf5_path\lib" -Name | Where-Object { $_ -like "*hdf*" -or $_ -like "*HDF*" }
-            if ($lib_files.Count -gt 0) {
-                $has_hdf5_content = $true
-                Write-Host "Found HDF5 library files: $($lib_files -join ', ')"
-            }
-        }
-        if (Test-Path "$hdf5_path\include") {
-            $include_files = Get-ChildItem -Path "$hdf5_path\include" -Name | Where-Object { $_ -like "*hdf*" -or $_ -like "*HDF*" }
-            if ($include_files.Count -gt 0) {
-                $has_hdf5_content = $true
-                Write-Host "Found HDF5 include files: $($include_files -join ', ')"
-            }
-        }
-        if (-not $has_hdf5_content) {
-            Write-Warning "Selected directory doesn't appear to contain HDF5 files. This might not be the correct directory."
-        }
-
+        7z x hdf5.zip -o"C:\"
+        $hdf5_path = "C:\HDF_Group\HDF5\1.14.6"
         echo "HDF5_ROOT=$hdf5_path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        # Only set HDF5_DIR if cmake directory exists
-        if (Test-Path "$hdf5_path\cmake") {
-            echo "HDF5_DIR=$hdf5_path\cmake" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        }
         echo "$hdf5_path\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        echo "$hdf5_path\lib" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-        # Verify environment variables are set correctly
-        Write-Host "Environment variables set:"
-        Write-Host "HDF5_ROOT: $env:HDF5_ROOT"
-        Write-Host "HDF5_DIR: $env:HDF5_DIR"
 
     - name: Install FFTW (Windows)
       if: runner.os == 'Windows' && matrix.needs_fftw
@@ -182,8 +97,6 @@ jobs:
         $fftw_path = "C:\fftw"
         echo "FFTW_ROOT=$fftw_path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         echo "$fftw_path" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        echo "Checking FFTW installation..."
-        ls $fftw_path
 
     # Install CUDA Toolkit on Windows hosted runners using NVIDIA's network installer.
     # This enables building CUDA code (nvcc and headers) but does NOT provide a GPU for runtime tests.
@@ -203,7 +116,7 @@ jobs:
     - name: Configure CMake (macOS)
       if: runner.os == 'macOS'
       run: |
-        echo "Using Homebrew GCC with OpenMP support:"
+        echo "Using GCC with Homebrew libomp:"
         # Set CC and CXX to Homebrew's GCC
         export CC=$(brew --prefix gcc)/bin/gcc-15
         export CXX=$(brew --prefix gcc)/bin/g++-15
@@ -214,8 +127,7 @@ jobs:
         cmake -B build \
           ${{ matrix.cmake_flags }} \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_C_COMPILER=$(brew --prefix gcc)/bin/gcc-15 \
-          -DCMAKE_CXX_COMPILER=$(brew --prefix gcc)/bin/g++-15
+          -DCMAKE_PREFIX_PATH="$(brew --prefix hdf5);$(brew --prefix fftw);$(brew --prefix libomp)"
 
     - name: Configure CMake (Linux)
       if: runner.os == 'Linux'
@@ -223,25 +135,7 @@ jobs:
 
     - name: Configure CMake (Windows)
       if: runner.os == 'Windows'
-      shell: bash
-      run: |
-        echo "HDF5_ROOT: $HDF5_ROOT"
-        echo "HDF5_DIR: $HDF5_DIR"
-        echo "FFTW_ROOT: $FFTW_ROOT"
-        echo "Checking HDF5 installation..."
-        ls -la "$HDF5_ROOT" || echo "HDF5_ROOT directory not found"
-        echo "HDF5_ROOT contents:"
-        ls -la "$HDF5_ROOT" || echo "Failed to list HDF5_ROOT"
-        echo "Checking subdirectories:"
-        ls -la "$HDF5_ROOT/lib" 2>/dev/null || echo "No lib directory"
-        ls -la "$HDF5_ROOT/include" 2>/dev/null || echo "No include directory"
-        ls -la "$HDF5_ROOT/cmake" 2>/dev/null || echo "No cmake directory"
-        ls -la "$HDF5_ROOT/bin" 2>/dev/null || echo "No bin directory"
-        echo "Checking for HDF5 libraries..."
-        find "$HDF5_ROOT" -name "*.lib" 2>/dev/null | head -10 || echo "No .lib files found"
-        echo "Checking for HDF5 headers..."
-        find "$HDF5_ROOT" -name "hdf5.h" 2>/dev/null | head -5 || echo "No hdf5.h found"
-        cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$HDF5_ROOT;$FFTW_ROOT"
+      run: cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ env.HDF5_ROOT }};${{ env.FFTW_ROOT }}"
 
     - name: Build (Unix)
       if: runner.os != 'Windows'

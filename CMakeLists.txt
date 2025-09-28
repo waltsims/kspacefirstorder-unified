@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.18)
 
+# Set the vcpkg toolchain file before the project command
+# This ensures that find_package calls in toolchain files are executed before project-wide language support is enabled
+if(DEFINED CMAKE_TOOLCHAIN_FILE AND EXISTS "${CMAKE_TOOLCHAIN_FILE}")
+    include("${CMAKE_TOOLCHAIN_FILE}")
+endif()
+
 # Project configuration
 project(kspaceFirstOrder VERSION 3.6 LANGUAGES C CXX)
 
