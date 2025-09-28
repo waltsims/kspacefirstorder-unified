@@ -1,5 +1,60 @@
 # Find HDF5
-find_package(HDF5 COMPONENTS C CXX HL REQUIRED)
+find_package(HDF5 COMPONENTS C CXX HL QUIET)
+if(NOT HDF5_FOUND)
+    message(STATUS "HDF5 with C++ support not found via CMake, trying manual detection...")
+    # Try to find HDF5 manually for Windows
+    find_path(HDF5_INCLUDE_DIR
+        NAMES hdf5.h
+        PATHS
+        $ENV{HDF5_ROOT}/include
+        $ENV{HDF5_DIR}/../include
+        "C:/HDF_Group/HDF5/*/include"
+        NO_DEFAULT_PATH
+    )
+
+    find_library(HDF5_C_LIBRARY
+        NAMES hdf5 libhdf5 hdf5-static
+        PATHS
+        $ENV{HDF5_ROOT}/lib
+        $ENV{HDF5_DIR}/../lib
+        "C:/HDF_Group/HDF5/*/lib"
+        NO_DEFAULT_PATH
+    )
+
+    find_library(HDF5_CXX_LIBRARY
+        NAMES hdf5_cpp libhdf5_cpp hdf5-static-cpp
+        PATHS
+        $ENV{HDF5_ROOT}/lib
+        $ENV{HDF5_DIR}/../lib
+        "C:/HDF_Group/HDF5/*/lib"
+        NO_DEFAULT_PATH
+    )
+
+    find_library(HDF5_HL_LIBRARY
+        NAMES hdf5_hl libhdf5_hl hdf5_hl-static
+        PATHS
+        $ENV{HDF5_ROOT}/lib
+        $ENV{HDF5_DIR}/../lib
+        "C:/HDF_Group/HDF5/*/lib"
+        NO_DEFAULT_PATH
+    )
+
+    if(HDF5_INCLUDE_DIR AND HDF5_C_LIBRARY)
+        set(HDF5_FOUND TRUE)
+        set(HDF5_INCLUDE_DIRS ${HDF5_INCLUDE_DIR})
+        set(HDF5_LIBRARIES ${HDF5_C_LIBRARY})
+        if(HDF5_CXX_LIBRARY)
+            list(APPEND HDF5_LIBRARIES ${HDF5_CXX_LIBRARY})
+        endif()
+        if(HDF5_HL_LIBRARY)
+            list(APPEND HDF5_LIBRARIES ${HDF5_HL_LIBRARY})
+        endif()
+        message(STATUS "✓ Found HDF5 (manual detection)")
+        message(STATUS "  - Include dirs: ${HDF5_INCLUDE_DIRS}")
+        message(STATUS "  - Libraries: ${HDF5_LIBRARIES}")
+    endif()
+endif()
+
 if(NOT HDF5_FOUND)
     message(FATAL_ERROR "HDF5 not found. Please install HDF5 with C++ support (see DEPENDENCIES.md)")
 endif()
