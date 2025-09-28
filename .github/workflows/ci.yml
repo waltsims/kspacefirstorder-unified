@@ -83,9 +83,19 @@ jobs:
         $hdf5_url = "https://support.hdfgroup.org/releases/hdf5/v1_14/v1_14_6/downloads/hdf5-1.14.6-win-vs2022_cl.zip"
         Invoke-WebRequest -Uri $hdf5_url -OutFile hdf5.zip
         7z x hdf5.zip -o"C:\"
-        $hdf5_path = "C:\HDF_Group\HDF5\1.14.6"
+        # Find the actual HDF5 installation directory
+        $hdf5_dirs = Get-ChildItem -Path "C:\" -Name -Directory | Where-Object { $_ -like "*HDF*" -or $_ -like "*hdf*" }
+        if ($hdf5_dirs.Count -eq 0) {
+          Write-Error "No HDF5 directory found after extraction"
+          exit 1
+        }
+        $hdf5_path = "C:\" + $hdf5_dirs[0]
+        Write-Host "Found HDF5 directory: $hdf5_path"
         echo "HDF5_ROOT=$hdf5_path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        echo "HDF5_DIR=$hdf5_path\cmake" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        # Only set HDF5_DIR if cmake directory exists
+        if (Test-Path "$hdf5_path\cmake") {
+            echo "HDF5_DIR=$hdf5_path\cmake" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        }
         echo "$hdf5_path\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
         echo "$hdf5_path\lib" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
@@ -120,7 +130,7 @@ jobs:
     - name: Configure CMake (macOS)
       if: runner.os == 'macOS'
       run: |
-        echo "Using GCC with Homebrew libomp:"
+        echo "Using Homebrew GCC with OpenMP support:"
         # Set CC and CXX to Homebrew's GCC
         export CC=$(brew --prefix gcc)/bin/gcc-15
         export CXX=$(brew --prefix gcc)/bin/g++-15
@@ -131,7 +141,8 @@ jobs:
         cmake -B build \
           ${{ matrix.cmake_flags }} \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_PREFIX_PATH="$(brew --prefix hdf5);$(brew --prefix fftw);$(brew --prefix libomp)"
+          -DCMAKE_C_COMPILER=$(brew --prefix gcc)/bin/gcc-15 \
+          -DCMAKE_CXX_COMPILER=$(brew --prefix gcc)/bin/g++-15
 
     - name: Configure CMake (Linux)
       if: runner.os == 'Linux'
@@ -139,18 +150,25 @@ jobs:
 
     - name: Configure CMake (Windows)
       if: runner.os == 'Windows'
+      shell: bash
       run: |
-        echo "HDF5_ROOT: ${{ env.HDF5_ROOT }}"
-        echo "HDF5_DIR: ${{ env.HDF5_DIR }}"
-        echo "FFTW_ROOT: ${{ env.FFTW_ROOT }}"
+        echo "HDF5_ROOT: $HDF5_ROOT"
+        echo "HDF5_DIR: $HDF5_DIR"
+        echo "FFTW_ROOT: $FFTW_ROOT"
         echo "Checking HDF5 installation..."
-        ls "${{ env.HDF5_ROOT }}"
-        ls "${{ env.HDF5_ROOT }}/lib" 2>/dev/null || echo "No lib directory"
-        ls "${{ env.HDF5_ROOT }}/include" 2>/dev/null || echo "No include directory"
-        ls "${{ env.HDF5_ROOT }}/cmake" 2>/dev/null || echo "No cmake directory"
+        ls -la "$HDF5_ROOT" || echo "HDF5_ROOT directory not found"
+        echo "HDF5_ROOT contents:"
+        ls -la "$HDF5_ROOT" || echo "Failed to list HDF5_ROOT"
+        echo "Checking subdirectories:"
+        ls -la "$HDF5_ROOT/lib" 2>/dev/null || echo "No lib directory"
+        ls -la "$HDF5_ROOT/include" 2>/dev/null || echo "No include directory"
+        ls -la "$HDF5_ROOT/cmake" 2>/dev/null || echo "No cmake directory"
+        ls -la "$HDF5_ROOT/bin" 2>/dev/null || echo "No bin directory"
         echo "Checking for HDF5 libraries..."
-        find "${{ env.HDF5_ROOT }}" -name "*.lib" 2>/dev/null | head -10 || echo "No .lib files found"
-        cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ env.HDF5_ROOT }};${{ env.FFTW_ROOT }}"
+        find "$HDF5_ROOT" -name "*.lib" 2>/dev/null | head -10 || echo "No .lib files found"
+        echo "Checking for HDF5 headers..."
+        find "$HDF5_ROOT" -name "hdf5.h" 2>/dev/null | head -5 || echo "No hdf5.h found"
+        cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$HDF5_ROOT;$FFTW_ROOT"
 
     - name: Build (Unix)
       if: runner.os != 'Windows'

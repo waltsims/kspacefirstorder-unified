@@ -7,7 +7,7 @@ if(NOT HDF5_FOUND)
         NAMES hdf5.h
         PATHS
         $ENV{HDF5_ROOT}/include
-        $ENV{HDF5_DIR}/../include
+        $ENV{HDF5_ROOT}/cmake/../include
         "C:/HDF_Group/HDF5/*/include"
         NO_DEFAULT_PATH
     )
@@ -16,7 +16,7 @@ if(NOT HDF5_FOUND)
         NAMES hdf5 libhdf5 hdf5-static
         PATHS
         $ENV{HDF5_ROOT}/lib
-        $ENV{HDF5_DIR}/../lib
+        $ENV{HDF5_ROOT}/cmake/../lib
         "C:/HDF_Group/HDF5/*/lib"
         NO_DEFAULT_PATH
     )
@@ -25,7 +25,7 @@ if(NOT HDF5_FOUND)
         NAMES hdf5_cpp libhdf5_cpp hdf5-static-cpp
         PATHS
         $ENV{HDF5_ROOT}/lib
-        $ENV{HDF5_DIR}/../lib
+        $ENV{HDF5_ROOT}/cmake/../lib
         "C:/HDF_Group/HDF5/*/lib"
         NO_DEFAULT_PATH
     )
@@ -34,7 +34,7 @@ if(NOT HDF5_FOUND)
         NAMES hdf5_hl libhdf5_hl hdf5_hl-static
         PATHS
         $ENV{HDF5_ROOT}/lib
-        $ENV{HDF5_DIR}/../lib
+        $ENV{HDF5_ROOT}/cmake/../lib
         "C:/HDF_Group/HDF5/*/lib"
         NO_DEFAULT_PATH
     )
