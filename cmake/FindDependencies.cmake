@@ -1,14 +1,69 @@
 # Find HDF5
-find_package(HDF5 COMPONENTS C HL REQUIRED)
+set(_hdf5_hl_libs "")
+
+if(DEFINED ENV{HDF5_ROOT} AND NOT HDF5_ROOT)
+    set(HDF5_ROOT $ENV{HDF5_ROOT})
+endif()
+if(DEFINED ENV{HDF5_DIR} AND NOT HDF5_DIR)
+    set(HDF5_DIR $ENV{HDF5_DIR})
+endif()
+
+find_package(HDF5 COMPONENTS C HL QUIET)
+
+if(NOT HDF5_FOUND AND HDF5_ROOT)
+    message(STATUS "HDF5 not found via CMake module, attempting manual lookup in ${HDF5_ROOT}")
+    set(_hdf5_candidate_includes
+        ${HDF5_ROOT}/include
+        ${HDF5_ROOT}/Include
+    )
+    set(_hdf5_candidate_libs
+        ${HDF5_ROOT}/lib
+        ${HDF5_ROOT}/Lib
+        ${HDF5_ROOT}/bin
+        ${HDF5_ROOT}/Bin
+    )
+
+    find_path(HDF5_INCLUDE_DIRS
+        NAMES hdf5.h
+        PATHS ${_hdf5_candidate_includes}
+        NO_DEFAULT_PATH
+    )
+
+    find_library(HDF5_C_LIBRARY
+        NAMES hdf5 libhdf5
+        PATHS ${_hdf5_candidate_libs}
+        NO_DEFAULT_PATH
+    )
+
+    find_library(HDF5_HL_LIBRARY
+        NAMES hdf5_hl libhdf5_hl
+        PATHS ${_hdf5_candidate_libs}
+        NO_DEFAULT_PATH
+    )
+
+    if(HDF5_INCLUDE_DIRS AND HDF5_C_LIBRARY)
+        set(HDF5_FOUND TRUE)
+        set(HDF5_LIBRARIES ${HDF5_C_LIBRARY})
+        set(HDF5_LIBRARY ${HDF5_C_LIBRARY})
+        set(HDF5_INCLUDE_DIR ${HDF5_INCLUDE_DIRS})
+        if(HDF5_HL_LIBRARY)
+            set(_hdf5_hl_libs ${HDF5_HL_LIBRARY})
+            set(HDF5_HL_LIBRARIES ${HDF5_HL_LIBRARY})
+        endif()
+        if(NOT HDF5_VERSION)
+            set(HDF5_VERSION "manual")
+        endif()
+    endif()
+endif()
+
 if(NOT HDF5_FOUND)
     message(FATAL_ERROR "HDF5 not found. Please install HDF5 with C++ support (see DEPENDENCIES.md)")
 endif()
 
 # Ensure high-level (H5LT) libs are linked
-set(_hdf5_hl_libs "")
-if(DEFINED HDF5_HL_LIBRARIES)
+if(NOT _hdf5_hl_libs AND DEFINED HDF5_HL_LIBRARIES)
     set(_hdf5_hl_libs ${HDF5_HL_LIBRARIES})
-elseif(DEFINED HDF5_C_HL_LIBRARY)
+elseif(NOT _hdf5_hl_libs AND DEFINED HDF5_C_HL_LIBRARY)
     set(_hdf5_hl_libs ${HDF5_C_HL_LIBRARY})
 endif()
 
