@@ -33,16 +33,18 @@ jobs:
         run: |
           set -euxo pipefail
           cd repos/kspaceFirstOrder-openmp-linux
-          make -f Makefile.ci -j$(nproc) \
+          make -f Makefile.ci -j"$(nproc)" all \
             LINKING=DYNAMIC COMPILER=GNU \
+            EBROOTFFTW=/usr EBROOTHDF5=/usr/lib/x86_64-linux-gnu/hdf5/serial EBROOTZLIB=/usr EBROOTSZIP=/usr \
             INCLUDES="-I/usr/include/hdf5/serial -I/usr/include -I." \
-            LIB_PATHS="-L/usr/lib/x86_64-linux-gnu/hdf5/serial -L/usr/lib/x86_64-linux-gnu"
+            LIB_PATHS="-L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib -L/usr/lib/x86_64-linux-gnu" \
+            CXXFLAGS+=" -include string"
       - name: Smoke test (Linux)
         run: |
           set -euxo pipefail
           cd repos/kspaceFirstOrder-openmp-linux
           chmod +x ./kspaceFirstOrder-OMP || true
-          ./kspaceFirstOrder-OMP --help | head -n 40 || true
+          LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial:${LD_LIBRARY_PATH:-}" ./kspaceFirstOrder-OMP --help | head -n 40 || true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
