@@ -1,0 +1,47 @@
+name: CI (start-over)
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  linux-openmp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install system dependencies (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential make pkg-config \
+            libfftw3-dev libfftw3-single3 libfftw3-omp3 \
+            libhdf5-dev zlib1g-dev libaec-dev
+
+      - name: Build (OpenMP, Linux)
+        run: |
+          set -euxo pipefail
+          make -C repos/kspaceFirstOrder-openmp-linux -j$(nproc) \
+            LINKING=DYNAMIC COMPILER=GNU \
+            FFT_DIR=/usr HDF5_DIR=/usr ZLIB_DIR=/usr SZIP_DIR=/usr
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kspaceFirstOrder-openmp-linux-ubuntu-latest
+          path: |
+            repos/kspaceFirstOrder-openmp-linux/kspaceFirstOrder-*
+          if-no-files-found: error
+
+      - name: Build diagnostics
+        if: failure()
+        run: |
+          echo "Build failed for OpenMP (Linux)"
+          echo "CPU info:"; lscpu || true
+          echo "FFTW libs:"; ldconfig -p | grep -i fftw || true
+          echo "HDF5 libs:"; ldconfig -p | grep -i hdf5 || true
