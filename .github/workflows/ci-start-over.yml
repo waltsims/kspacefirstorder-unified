@@ -20,7 +20,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential make pkg-config \
-            libfftw3-dev libfftw3-single3 libfftw3-omp3 \
+            libfftw3-dev libfftw3-single3 \
             libhdf5-dev zlib1g-dev libaec-dev
 
       - name: Build (OpenMP, Linux)
