@@ -122,19 +122,51 @@ if(NOT HDF5_FOUND)
     message(FATAL_ERROR "HDF5 not found. Set HDF5_DIR or HDF5_ROOT, or install HDF5 (see DEPENDENCIES.md)")
 endif()
 
+# Populate include dirs if still empty (e.g., some config packages don't set variables)
+if(NOT HDF5_INCLUDE_DIRS)
+    find_path(HDF5_INCLUDE_DIRS
+        NAMES hdf5.h H5public.h
+        PATH_SUFFIXES
+            include
+            include/hdf5
+            include/hdf5/serial
+    )
+endif()
+
+# Populate libraries if still empty and no imported targets
+if(NOT _hdf5_core_target AND NOT HDF5_LIBRARIES)
+    find_library(HDF5_C_LIBRARY
+        NAMES hdf5 libhdf5
+    )
+    find_library(HDF5_HL_LIBRARY
+        NAMES hdf5_hl libhdf5_hl
+    )
+    if(HDF5_C_LIBRARY)
+        set(HDF5_LIBRARIES ${HDF5_C_LIBRARY})
+        if(HDF5_HL_LIBRARY)
+            list(APPEND HDF5_LIBRARIES ${HDF5_HL_LIBRARY})
+        endif()
+    endif()
+endif()
+
 # Build a thin interface target to propagate includes and link libs consistently
 add_library(kspace_hdf5 INTERFACE)
 
 # Prefer imported targets when available (config mode)
 set(_hdf5_core_target "")
 set(_hdf5_hl_target "")
-foreach(_cand IN ITEMS hdf5::hdf5 hdf5::hdf5-shared hdf5::hdf5-static)
+# Try common target name variants from different package providers
+foreach(_cand IN ITEMS 
+    hdf5::hdf5 hdf5::hdf5-shared hdf5::hdf5-static 
+    HDF5::HDF5 HDF5::hdf5 HDF5::hdf5-shared HDF5::hdf5-static)
     if(TARGET ${_cand})
         set(_hdf5_core_target ${_cand})
         break()
     endif()
 endforeach()
-foreach(_cand IN ITEMS hdf5::hdf5_hl hdf5::hdf5_hl-shared hdf5::hdf5_hl-static)
+foreach(_cand IN ITEMS 
+    hdf5::hdf5_hl hdf5::hdf5_hl-shared hdf5::hdf5_hl-static 
+    HDF5::HDF5_hl HDF5::hdf5_hl HDF5::hdf5_hl-shared HDF5::hdf5_hl-static)
     if(TARGET ${_cand})
         set(_hdf5_hl_target ${_cand})
         break()
@@ -157,12 +189,27 @@ if(NOT _hdf5_core_target)
     if(DEFINED HDF5_LIBRARIES)
         target_link_libraries(kspace_hdf5 INTERFACE ${HDF5_LIBRARIES})
     endif()
-    if(DEFINED HDF5_INCLUDE_DIRS)
-        target_include_directories(kspace_hdf5 INTERFACE ${HDF5_INCLUDE_DIRS})
-    endif()
+endif()
+
+# Always add include directories if discovered
+if(DEFINED HDF5_INCLUDE_DIRS)
+    target_include_directories(kspace_hdf5 INTERFACE ${HDF5_INCLUDE_DIRS})
 endif()
 
 message(STATUS "✓ Found HDF5 ${HDF5_VERSION}")
+# If variables are empty in config mode, try to populate for logging
+if(NOT HDF5_INCLUDE_DIRS AND _hdf5_core_target)
+    get_target_property(_h5_includes ${_hdf5_core_target} INTERFACE_INCLUDE_DIRECTORIES)
+    if(_h5_includes)
+        set(HDF5_INCLUDE_DIRS ${_h5_includes})
+    endif()
+endif()
+if(NOT HDF5_LIBRARIES AND _hdf5_core_target)
+    set(HDF5_LIBRARIES ${_hdf5_core_target})
+    if(_hdf5_hl_target)
+        list(APPEND HDF5_LIBRARIES ${_hdf5_hl_target})
+    endif()
+endif()
 message(STATUS "  - Include dirs: ${HDF5_INCLUDE_DIRS}")
 message(STATUS "  - Libraries: ${HDF5_LIBRARIES}")
 
