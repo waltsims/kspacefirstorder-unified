@@ -6,7 +6,8 @@
   "homepage": "https://github.com/waltsims/kspaceFirstOrder-unified",
   "dependencies": [
     {
-      "name": "hdf5"
+      "name": "hdf5",
+      "features": ["hl"]
     },
     {
       "name": "fftw3",
@@ -18,4 +19,3 @@
     }
   ]
 }
-

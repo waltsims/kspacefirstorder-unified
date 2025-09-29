@@ -73,7 +73,7 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew update
-        brew install llvm
+        brew install llvm libomp
         echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
         echo "CC=$(brew --prefix llvm)/bin/clang" >> $GITHUB_ENV
         echo "CXX=$(brew --prefix llvm)/bin/clang++" >> $GITHUB_ENV

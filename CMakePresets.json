@@ -32,7 +32,7 @@
       "displayName": "Linux OpenMP (x64)",
       "condition": {
         "type": "equals",
-        "lhs": "$env{OS_NAME}",
+        "lhs": "${hostSystemName}",
         "rhs": "Linux"
       },
       "cacheVariables": {
@@ -50,7 +50,7 @@
       "displayName": "macOS OpenMP (x64)",
       "condition": {
         "type": "equals",
-        "lhs": "$env{OS_NAME}",
+        "lhs": "${hostSystemName}",
         "rhs": "Darwin"
       },
       "cacheVariables": {
@@ -68,8 +68,8 @@
       "displayName": "Windows OpenMP (x64)",
       "condition": {
         "type": "equals",
-        "lhs": "$env{OS}",
-        "rhs": "Windows_NT"
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
       },
       "cacheVariables": {
         "USE_OPENMP": "ON",
@@ -136,4 +136,3 @@
     }
   ]
 }
-

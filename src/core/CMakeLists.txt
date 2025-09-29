@@ -60,6 +60,8 @@ if(USE_OPENMP)
     target_link_libraries(kspace_core PUBLIC
         OpenMP::OpenMP_CXX
     )
+    # Core uses FFTW (wisdom and threading) so require FFTW when OpenMP is enabled
+    target_link_libraries(kspace_core PUBLIC FFTW3::fftw3f FFTW3::fftw3f_threads)
 endif()
 
 target_include_directories(kspace_core PUBLIC 
