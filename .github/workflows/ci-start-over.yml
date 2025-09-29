@@ -21,24 +21,15 @@ jobs:
           sudo apt-get install -y \
             build-essential cmake pkg-config \
             libhdf5-dev libfftw3-dev
-      - name: Prepare CI Makefile (tabs for recipes)
-        run: |
-          set -euxo pipefail
-          cd repos/kspaceFirstOrder-openmp-linux
-          cp Makefile Makefile.ci
-          # Convert only recipe lines to tab-prefixed to avoid missing separator on GNU make
-          sed -i -E 's|^  (\$\([^)]*\).*)|\t\1|' Makefile.ci
-          sed -i -E 's|^  (rm -f .*)|\t\1|' Makefile.ci
       - name: Build (OpenMP, Linux)
         run: |
           set -euxo pipefail
           cd repos/kspaceFirstOrder-openmp-linux
-          make -f Makefile.ci -j"$(nproc)" all \
+          make -j"$(nproc)" all \
             LINKING=DYNAMIC COMPILER=GNU \
-            EBROOTFFTW=/usr EBROOTHDF5=/usr/lib/x86_64-linux-gnu/hdf5/serial EBROOTZLIB=/usr EBROOTSZIP=/usr \
-            INCLUDES="-I/usr/include/hdf5/serial -I/usr/include -I." \
-            LIB_PATHS="-L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib -L/usr/lib/x86_64-linux-gnu" \
-            CXXFLAGS+=" -include string"
+            EBROOTHDF5=/usr/lib/x86_64-linux-gnu/hdf5/serial \
+            EBROOTZLIB=/usr EBROOTFFTW=/usr EBROOTSZIP=/usr \
+            LIB_PATHS='-L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib -L/usr/lib/x86_64-linux-gnu'
       - name: Smoke test (Linux)
         run: |
           set -euxo pipefail
