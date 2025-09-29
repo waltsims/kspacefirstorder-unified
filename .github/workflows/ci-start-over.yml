@@ -25,7 +25,7 @@ jobs:
         run: |
           set -euxo pipefail
           cd repos/kspaceFirstOrder-openmp-linux
-          make -j"$(nproc)" all \
+          make -j"$(nproc)" .RECIPEPREFIX=' ' all \
             LINKING=DYNAMIC COMPILER=GNU \
             EBROOTHDF5=/usr/lib/x86_64-linux-gnu/hdf5/serial \
             EBROOTZLIB=/usr EBROOTFFTW=/usr EBROOTSZIP=/usr \
