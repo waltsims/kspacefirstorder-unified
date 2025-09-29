@@ -19,18 +19,19 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential make pkg-config \
-            libfftw3-dev libfftw3-single3 \
-            libhdf5-dev zlib1g-dev libaec-dev
+            build-essential cmake pkg-config \
+            libhdf5-dev libfftw3-dev
       - name: Prepare wrapper Makefile (no source changes)
         run: |
-          # Set a space as recipe prefix, then include upstream Makefile
-          printf '.RECIPEPREFIX = \ninclude Makefile\n' > repos/kspaceFirstOrder-openmp-linux/Makefile.ci
+          # Create wrapper and set a literal space as recipe prefix, then include upstream Makefile
+          cd repos/kspaceFirstOrder-openmp-linux
+          printf '.RECIPEPREFIX := %b\ninclude Makefile\n' ' ' > Makefile.ci
       - name: Build (OpenMP, Linux)
         run: |
           set -euxo pipefail
-          make -C repos/kspaceFirstOrder-openmp-linux -f Makefile.ci -j$(nproc) \
-            LINKING=STATIC COMPILER=GNU \
+          cd repos/kspaceFirstOrder-openmp-linux
+          make -f Makefile.ci -j$(nproc) \
+            LINKING=DYNAMIC COMPILER=GNU \
             FFT_DIR=/usr HDF5_DIR=/usr ZLIB_DIR=/usr SZIP_DIR=/usr
 
       - name: Upload artifacts
