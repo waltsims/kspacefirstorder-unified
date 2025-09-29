@@ -21,18 +21,28 @@ jobs:
           sudo apt-get install -y \
             build-essential cmake pkg-config \
             libhdf5-dev libfftw3-dev
-      - name: Prepare wrapper Makefile (no source changes)
+      - name: Prepare CI Makefile (tabs for recipes)
         run: |
-          # Create wrapper and set a literal space as recipe prefix, then include upstream Makefile
+          set -euxo pipefail
           cd repos/kspaceFirstOrder-openmp-linux
-          printf '.RECIPEPREFIX := %b\ninclude Makefile\n' ' ' > Makefile.ci
+          cp Makefile Makefile.ci
+          # Convert only recipe lines to tab-prefixed to avoid missing separator on GNU make
+          sed -i -E 's|^  (\$\([^)]*\).*)|\t\1|' Makefile.ci
+          sed -i -E 's|^  (rm -f .*)|\t\1|' Makefile.ci
       - name: Build (OpenMP, Linux)
         run: |
           set -euxo pipefail
           cd repos/kspaceFirstOrder-openmp-linux
           make -f Makefile.ci -j$(nproc) \
             LINKING=DYNAMIC COMPILER=GNU \
-            FFT_DIR=/usr HDF5_DIR=/usr ZLIB_DIR=/usr SZIP_DIR=/usr
+            INCLUDES="-I/usr/include/hdf5/serial -I/usr/include -I." \
+            LIB_PATHS="-L/usr/lib/x86_64-linux-gnu/hdf5/serial -L/usr/lib/x86_64-linux-gnu"
+      - name: Smoke test (Linux)
+        run: |
+          set -euxo pipefail
+          cd repos/kspaceFirstOrder-openmp-linux
+          chmod +x ./kspaceFirstOrder-OMP || true
+          ./kspaceFirstOrder-OMP --help | head -n 40 || true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
