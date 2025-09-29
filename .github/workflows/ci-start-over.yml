@@ -81,6 +81,12 @@ jobs:
             HDF5_DIR="$H5" FFT_DIR="$FF" ZLIB_DIR="$ZL" LIBOMP_DIR="$LO" \
             LDLIBS="-lfftw3f $FFTW_OMP_LIB -lhdf5 -lhdf5_hl -lm -lz -lomp"
 
+      - name: Smoke test (macOS)
+        run: |
+          set -e
+          cd repos/kspaceFirstOrder-openmp-darwin
+          ./kspaceFirstOrder-OMP --help
+
       - name: Upload artifacts (macOS)
         uses: actions/upload-artifact@v4
         with:
