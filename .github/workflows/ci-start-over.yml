@@ -49,3 +49,49 @@ jobs:
           echo "CPU info:"; lscpu || true
           echo "FFTW libs:"; ldconfig -p | grep -i fftw || true
           echo "HDF5 libs:"; ldconfig -p | grep -i hdf5 || true
+
+  macos-openmp:
+    runs-on: macos-14
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install dependencies (Homebrew)
+        run: |
+          brew update
+          brew install hdf5 fftw zlib libomp
+
+      - name: Build (OpenMP, macOS)
+        run: |
+          set -euxo pipefail
+          H5=$(brew --prefix hdf5)
+          FF=$(brew --prefix fftw)
+          ZL=$(brew --prefix zlib)
+          LO=$(brew --prefix libomp)
+          # Choose FFTW OpenMP lib if available, otherwise fall back to threads lib
+          if [ -f "$FF/lib/libfftw3f_omp.dylib" ] || [ -f "$FF/lib/libfftw3f_omp.a" ]; then
+            FFTW_OMP_LIB="-lfftw3f_omp"
+          else
+            FFTW_OMP_LIB="-lfftw3f_threads"
+          fi
+          cd repos/kspaceFirstOrder-openmp-darwin
+          make -j"$(sysctl -n hw.ncpu)" \
+            HDF5_DIR="$H5" FFT_DIR="$FF" ZLIB_DIR="$ZL" LIBOMP_DIR="$LO" \
+            LDLIBS="-lfftw3f $FFTW_OMP_LIB -lhdf5 -lhdf5_hl -lm -lz -lomp"
+
+      - name: Upload artifacts (macOS)
+        uses: actions/upload-artifact@v4
+        with:
+          name: kspaceFirstOrder-openmp-darwin-macos-latest
+          path: |
+            repos/kspaceFirstOrder-openmp-darwin/kspaceFirstOrder-OMP
+          if-no-files-found: error
+
+      - name: Build diagnostics (macOS)
+        if: failure()
+        run: |
+          echo "Brew prefix:"; brew --prefix
+          echo "libomp:"; ls -la $(brew --prefix libomp)/lib || true
+          echo "fftw libs:"; ls -la $(brew --prefix fftw)/lib || true
