@@ -22,10 +22,14 @@ jobs:
             build-essential make pkg-config \
             libfftw3-dev libfftw3-single3 \
             libhdf5-dev zlib1g-dev libaec-dev
+      - name: Prepare wrapper Makefile (no source changes)
+        run: |
+          # Set a space as recipe prefix, then include upstream Makefile
+          printf '.RECIPEPREFIX = \ninclude Makefile\n' > repos/kspaceFirstOrder-openmp-linux/Makefile.ci
       - name: Build (OpenMP, Linux)
         run: |
           set -euxo pipefail
-          make -C repos/kspaceFirstOrder-openmp-linux -j$(nproc) \
+          make -C repos/kspaceFirstOrder-openmp-linux -f Makefile.ci -j$(nproc) \
             LINKING=STATIC COMPILER=GNU \
             FFT_DIR=/usr HDF5_DIR=/usr ZLIB_DIR=/usr SZIP_DIR=/usr
 
