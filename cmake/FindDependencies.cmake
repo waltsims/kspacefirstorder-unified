@@ -143,6 +143,10 @@ endforeach()
 
 if(_hdf5_core_target)
     target_link_libraries(kspace_hdf5 INTERFACE ${_hdf5_core_target})
+    # Explicitly propagate include dirs from the imported target
+    target_include_directories(kspace_hdf5 INTERFACE
+        $<TARGET_PROPERTY:${_hdf5_core_target},INTERFACE_INCLUDE_DIRECTORIES>
+    )
 endif()
 if(_hdf5_hl_target)
     target_link_libraries(kspace_hdf5 INTERFACE ${_hdf5_hl_target})
@@ -170,6 +174,7 @@ if(USE_OPENMP)
         /usr/local/lib
         /opt/local/lib
         /opt/homebrew/lib
+        $ENV{FFTW_ROOT}/lib
         $ENV{LOCALAPPDATA}/fftw
         ${CMAKE_SOURCE_DIR}/third-party/fftw
     )
@@ -178,6 +183,7 @@ if(USE_OPENMP)
         /usr/local/include
         /opt/local/include
         /opt/homebrew/include
+        $ENV{FFTW_ROOT}/include
         $ENV{LOCALAPPDATA}/fftw/include
         ${CMAKE_SOURCE_DIR}/third-party/fftw/include
     )

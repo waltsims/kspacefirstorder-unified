@@ -134,6 +134,7 @@ jobs:
           ${{ matrix.cmake_flags }} \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_PREFIX_PATH="$(brew --prefix hdf5);$(brew --prefix fftw);$(brew --prefix libomp)" \
+          -DHDF5_DIR="$(brew --prefix hdf5)/lib/cmake/hdf5" \
           -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON \
           -DHDF5_PREFER_PARALLEL=OFF
 
