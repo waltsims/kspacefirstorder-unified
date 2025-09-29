@@ -23,6 +23,11 @@ jobs:
             libfftw3-dev libfftw3-single3 \
             libhdf5-dev zlib1g-dev libaec-dev
 
+      - name: Normalize Makefile recipe prefix
+        run: |
+          # Upstream Makefile uses spaces for recipe lines; ensure GNU make accepts them
+          sed -i 's/^\.RECIPEPREFIX.*/.RECIPEPREFIX = /' repos/kspaceFirstOrder-openmp-linux/Makefile
+
       - name: Build (OpenMP, Linux)
         run: |
           set -euxo pipefail
