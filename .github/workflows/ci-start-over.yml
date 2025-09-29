@@ -26,23 +26,13 @@ jobs:
           set -euxo pipefail
           cd repos/kspaceFirstOrder-openmp-linux
           # Try a clean build exactly like the working local command
-          if make -j"$(nproc)" all \
+          make -j"$(nproc)" all \
               LINKING=DYNAMIC COMPILER=GNU \
               EBROOTHDF5=/usr/lib/x86_64-linux-gnu/hdf5/serial \
               EBROOTZLIB=/usr EBROOTFFTW=/usr EBROOTSZIP=/usr \
               LIB_PATHS='-L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib -L/usr/lib/x86_64-linux-gnu'; then
             echo "Built successfully without adjustments."
           else
-            echo "Falling back: normalize recipe lines for GNU make on runner"
-            cp Makefile Makefile.ci
-            sed -i -E "s|^[[:space:]]+(\$\(CXX\).*)|\t\1|" Makefile.ci
-            sed -i -E "s|^[[:space:]]+(rm -f .*)|\t\1|" Makefile.ci
-            make -f Makefile.ci -j"$(nproc)" all \
-              LINKING=DYNAMIC COMPILER=GNU \
-              EBROOTHDF5=/usr/lib/x86_64-linux-gnu/hdf5/serial \
-              EBROOTZLIB=/usr EBROOTFFTW=/usr EBROOTSZIP=/usr \
-              LIB_PATHS='-L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib -L/usr/lib/x86_64-linux-gnu'
-          fi
       - name: Smoke test (Linux)
         run: |
           set -euxo pipefail
