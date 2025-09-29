@@ -2,6 +2,8 @@
 
 This document describes how to install the required dependencies for building kspaceFirstOrder on different platforms.
 
+Recommended: use vcpkg manifest mode with the provided presets. See docs/build-with-vcpkg.md.
+
 ## Required Dependencies
 
 - CMake 3.18 or newer

@@ -31,21 +31,33 @@ jobs:
         brew install cmake llvm
         echo "/usr/local/opt/llvm/bin" >> $GITHUB_PATH
 
-    - name: Configure CMake with compile_commands.json
+    - name: Bootstrap vcpkg (Linux/macOS)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
-        mkdir build
-        cd build
-        cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DUSE_CUDA=OFF -DUSE_OPENMP=ON -DCMAKE_BUILD_TYPE=Debug
+        set -euxo pipefail
+        VCPKG_ROOT="$GITHUB_WORKSPACE/third-party/vcpkg"
+        echo "VCPKG_ROOT=$VCPKG_ROOT" >> "$GITHUB_ENV"
+        "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+    - name: Configure CMake with presets (Debug + compile_commands)
+      shell: bash
+      run: |
+        preset="linux-openmp"
+        if [ "$RUNNER_OS" = "macOS" ]; then preset="macos-openmp"; fi
+        cmake --preset "$preset" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
     - name: Run Clang-Tidy
       run: |
-        cd build
+        preset="linux-openmp"; if [ "$RUNNER_OS" = "macOS" ]; then preset="macos-openmp"; fi
+        cd "build/$preset"
         # Run clang-tidy on all source files with custom config
         find ../src -name "*.cpp" -o -name "*.cu" | head -10 | xargs -I {} sh -c 'echo "Checking {}" && clang-tidy {} -p . || echo "Issues found in {}"' || true
 
     - name: Run Clang-Tidy (full check)
       run: |
-        cd build
+        preset="linux-openmp"; if [ "$RUNNER_OS" = "macOS" ]; then preset="macos-openmp"; fi
+        cd "build/$preset"
         # Count issues without failing (for initial baseline)
         echo "Running Clang-Tidy analysis..."
         find ../src -name "*.cpp" -o -name "*.cu" | xargs -I {} clang-tidy {} -p . 2>&1 | tee clang-tidy-results.txt || true

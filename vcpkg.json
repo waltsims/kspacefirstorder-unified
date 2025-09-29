@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "kspacefirstorder-unified",
+  "version-semver": "3.6.0",
+  "description": "Unified C++ implementation of k-Wave with OpenMP and CUDA backends.",
+  "homepage": "https://github.com/waltsims/kspaceFirstOrder-unified",
+  "dependencies": [
+    {
+      "name": "hdf5"
+    },
+    {
+      "name": "fftw3",
+      "features": ["float", "threads"]
+    },
+    {
+      "name": "openmp",
+      "platform": "osx"
+    }
+  ]
+}
+

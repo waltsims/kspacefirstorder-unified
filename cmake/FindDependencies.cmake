@@ -215,50 +215,86 @@ message(STATUS "  - Libraries: ${HDF5_LIBRARIES}")
 
 # Find FFTW3 (for OpenMP backend)
 if(USE_OPENMP)
-    # Define search paths
-    set(FFTW_SEARCH_PATHS
-        /usr/lib
-        /usr/local/lib
-        /opt/local/lib
-        /opt/homebrew/lib
-        $ENV{FFTW_ROOT}/lib
-        $ENV{LOCALAPPDATA}/fftw
-        ${CMAKE_SOURCE_DIR}/third-party/fftw
-    )
-    set(FFTW_INCLUDE_SEARCH_PATHS
-        /usr/include
-        /usr/local/include
-        /opt/local/include
-        /opt/homebrew/include
-        $ENV{FFTW_ROOT}/include
-        $ENV{LOCALAPPDATA}/fftw/include
-        ${CMAKE_SOURCE_DIR}/third-party/fftw/include
-    )
+    # Prefer config packages (vcpkg provides imported targets): FFTW3::fftw3f and FFTW3::fftw3f_threads
+    set(FFTW_FOUND FALSE)
+    set(_fftwf_target "")
+    set(_fftwf_threads_target "")
 
-    find_library(FFTW_LIBRARY
-        NAMES fftw3f libfftw3f
-        PATHS ${FFTW_SEARCH_PATHS}
-    )
-    # Threads library for fftwf_init_threads/plan_with_nthreads
-    find_library(FFTW_THREADS_LIBRARY
-        NAMES fftw3f_threads libfftw3f_threads
-        PATHS ${FFTW_SEARCH_PATHS}
-    )
-    find_path(FFTW_INCLUDE_DIR
-        NAMES fftw3.h
-        PATHS ${FFTW_INCLUDE_SEARCH_PATHS}
-    )
-    if(FFTW_LIBRARY AND FFTW_INCLUDE_DIR)
-        set(FFTW_FOUND TRUE)
-        set(FFTW_LIBRARIES ${FFTW_LIBRARY})
-        if(FFTW_THREADS_LIBRARY)
-            list(APPEND FFTW_LIBRARIES ${FFTW_THREADS_LIBRARY})
+    find_package(FFTW3 CONFIG QUIET)
+
+    foreach(_cand IN ITEMS FFTW3::fftw3f fftw3f FFTW3::FFTW3F)
+        if(TARGET ${_cand})
+            set(_fftwf_target ${_cand})
+            break()
         endif()
-        set(FFTW_INCLUDE_DIRS ${FFTW_INCLUDE_DIR})
+    endforeach()
+    foreach(_cand IN ITEMS FFTW3::fftw3f_threads fftw3f_threads FFTW3::FFTW3F_THREADS)
+        if(TARGET ${_cand})
+            set(_fftwf_threads_target ${_cand})
+            break()
+        endif()
+    endforeach()
+
+    if(_fftwf_target)
+        set(FFTW_FOUND TRUE)
+        set(FFTW_LIBRARIES ${_fftwf_target})
+        if(_fftwf_threads_target)
+            list(APPEND FFTW_LIBRARIES ${_fftwf_threads_target})
+        endif()
+        # Propagate includes from imported targets
+        get_target_property(_fftw_inc ${_fftwf_target} INTERFACE_INCLUDE_DIRECTORIES)
+        if(_fftw_inc)
+            set(FFTW_INCLUDE_DIRS ${_fftw_inc})
+        endif()
+    endif()
+
+    # Fallback: manual search for single-precision FFTW
+    if(NOT FFTW_FOUND)
+        # Define search paths
+        set(FFTW_SEARCH_PATHS
+            /usr/lib
+            /usr/local/lib
+            /opt/local/lib
+            /opt/homebrew/lib
+            $ENV{FFTW_ROOT}/lib
+            $ENV{LOCALAPPDATA}/fftw
+            ${CMAKE_SOURCE_DIR}/third-party/fftw
+        )
+        set(FFTW_INCLUDE_SEARCH_PATHS
+            /usr/include
+            /usr/local/include
+            /opt/local/include
+            /opt/homebrew/include
+            $ENV{FFTW_ROOT}/include
+            $ENV{LOCALAPPDATA}/fftw/include
+            ${CMAKE_SOURCE_DIR}/third-party/fftw/include
+        )
+
+        find_library(FFTW_LIBRARY
+            NAMES fftw3f libfftw3f
+            PATHS ${FFTW_SEARCH_PATHS}
+        )
+        # Threads library for fftwf_init_threads/plan_with_nthreads
+        find_library(FFTW_THREADS_LIBRARY
+            NAMES fftw3f_threads libfftw3f_threads
+            PATHS ${FFTW_SEARCH_PATHS}
+        )
+        find_path(FFTW_INCLUDE_DIR
+            NAMES fftw3.h
+            PATHS ${FFTW_INCLUDE_SEARCH_PATHS}
+        )
+        if(FFTW_LIBRARY AND FFTW_INCLUDE_DIR)
+            set(FFTW_FOUND TRUE)
+            set(FFTW_LIBRARIES ${FFTW_LIBRARY})
+            if(FFTW_THREADS_LIBRARY)
+                list(APPEND FFTW_LIBRARIES ${FFTW_THREADS_LIBRARY})
+            endif()
+            set(FFTW_INCLUDE_DIRS ${FFTW_INCLUDE_DIR})
+        endif()
     endif()
 
     if(NOT FFTW_FOUND)
-        message(FATAL_ERROR "FFTW3 (single precision) not found. Please install FFTW3 (see DEPENDENCIES.md)")
+        message(FATAL_ERROR "FFTW3 (single precision) not found. Please install via vcpkg or system packages (see docs).")
     endif()
 
     message(STATUS "✓ Found FFTW3 (single precision)")

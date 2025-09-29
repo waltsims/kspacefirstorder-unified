@@ -114,70 +114,47 @@ jobs:
         echo "CUDA_PATH=C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.0" >> $GITHUB_ENV
         echo "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.0\\bin" >> $GITHUB_PATH
 
-    - name: Configure CMake (macOS)
-      if: runner.os == 'macOS'
+    - name: Configure CMake (presets)
       run: |
-        echo "Using GCC with Homebrew libomp:"
-        # Set CC and CXX to Homebrew's GCC
-        export CC=$(brew --prefix gcc)/bin/gcc-15
-        export CXX=$(brew --prefix gcc)/bin/g++-15
-        which gcc g++
-        $CC --version | head -1
-        $CXX --version | head -1
+        cmake --preset ${{ matrix.preset }}
 
-        cmake -B build \
-          ${{ matrix.cmake_flags }} \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_PREFIX_PATH="$(brew --prefix hdf5);$(brew --prefix fftw);$(brew --prefix libomp)" \
-          -DHDF5_DIR="$(brew --prefix hdf5)/lib/cmake/hdf5" \
-          -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON \
-          -DHDF5_PREFER_PARALLEL=OFF
+    
 
-    - name: Configure CMake (Linux)
-      if: runner.os == 'Linux'
-      run: cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON -DHDF5_PREFER_PARALLEL=OFF
-
-    - name: Configure CMake (Windows)
-      if: runner.os == 'Windows'
-      run: cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON -DHDF5_PREFER_PARALLEL=OFF -DHDF5_DIR="${{ env.HDF5_DIR }}" -DCMAKE_PREFIX_PATH="${{ env.HDF5_ROOT }};${{ env.HDF5_DIR }};${{ env.HDF5_ROOT }}\lib\cmake\hdf5;${{ env.VCPKG_ROOT }}\installed\x64-windows;${{ env.FFTW_ROOT }}"
-
-    - name: Build (Unix)
-      if: runner.os != 'Windows'
-      run: |
-        if [ "$RUNNER_OS" = "Linux" ]; then
-          cmake --build build -j$(nproc) --verbose
-        else
-          cmake --build build -j$(sysctl -n hw.ncpu) --verbose
-        fi
-      shell: bash
-
-    - name: Build (Windows)
-      if: runner.os == 'Windows'
-      run: cmake --build build --config Release -j --verbose
+    - name: Build
+      run: cmake --build --preset ${{ matrix.preset }} --config Release --verbose
     
     - name: Build diagnostics
       if: failure()
       shell: bash
       run: |
         echo "Build failed, showing CMake cache..."
-        cat build/CMakeCache.txt | grep -E "(OpenMP|FFTW|HDF5|CUDA)" || true
+        find build -maxdepth 3 -name CMakeCache.txt -print -exec grep -E "(OpenMP|FFTW|HDF5|CUDA)" {} \; || true
         echo "Showing CMake error log..."
-        cat build/CMakeFiles/CMakeError.log 2>/dev/null || echo "No CMakeError.log found"
+        find build -name CMakeError.log -print -exec cat {} \; || echo "No CMakeError.log found"
     
-    - name: Test executable exists (Unix)
-      if: runner.os != 'Windows'
-      run: test -f build/src/Release/kspaceFirstOrder
+    - name: Locate built executable
+      id: locate
+      shell: bash
+      run: |
+        set -e
+        root="build/${{ matrix.preset }}/src"
+        echo "Searching in $root"; ls -la "$root" || true
+        exe=""
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          exe=$(find "$root" -type f -name 'kspaceFirstOrder.exe' | head -n1)
+        else
+          exe=$(find "$root" -type f -perm -111 -name 'kspaceFirstOrder' -o -name 'kspaceFirstOrder*' | head -n1)
+        fi
+        if [ -z "$exe" ]; then
+          echo "Executable not found" >&2
+          exit 1
+        fi
+        echo "exe=$exe" >> $GITHUB_OUTPUT
 
-    - name: Test executable exists (Windows)
-      if: runner.os == 'Windows'
-      run: Test-Path build/src/Release/kspaceFirstOrder.exe
-      shell: powershell
-    
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: kspaceFirstOrder-${{ matrix.name }}
         path: |
-          build/src/Release/kspaceFirstOrder
-          build/src/Release/kspaceFirstOrder.exe
-        if-no-files-found: ignore
+          ${{ steps.locate.outputs.exe }}
+        if-no-files-found: error

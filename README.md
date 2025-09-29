@@ -49,21 +49,25 @@ This project uses CMake's `FetchContent` to automatically download and build its
 
 ## Building
 
-1.  **Configure and Build:**
-    Simply create a build directory and run CMake.
+1.  **Recommended: vcpkg + CMake presets (cross‑platform):**
 
     ```bash
-    # Clone the repository
-    git clone https://github.com/waltsims/kspaceFirstOrder-unified.git
-    cd kspaceFirstOrder-unified
+    # Bootstrap vcpkg
+    ./third-party/vcpkg/bootstrap-vcpkg.sh -disableMetrics   # Linux/macOS
+    # .\third-party\vcpkg\bootstrap-vcpkg.bat -disableMetrics  # Windows PowerShell
 
-    # Create build directory
+    # Configure + build (OpenMP backend)
+    cmake --preset linux-openmp   # or macos-openmp, windows-openmp
+    cmake --build --preset linux-openmp --config Release
+    ```
+
+    See docs/build-with-vcpkg.md for details.
+
+2.  **Manual CMake (legacy, without vcpkg):**
+
+    ```bash
     mkdir build && cd build
-
-    # Configure the project
-    cmake .. -DUSE_CUDA=OFF # (or ON if you have CUDA installed)
-
-    # Build
+    cmake .. -DUSE_CUDA=OFF -DUSE_OPENMP=ON
     cmake --build . --config Release --parallel
     ```
 
