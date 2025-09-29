@@ -50,6 +50,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: recursive
     
     - name: Install CUDA Toolkit (Linux only)
       if: matrix.setup_cuda && runner.os == 'Linux'
@@ -66,6 +68,15 @@ jobs:
         VCPKG_ROOT="$GITHUB_WORKSPACE/third-party/vcpkg"
         echo "VCPKG_ROOT=$VCPKG_ROOT" >> "$GITHUB_ENV"
         "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+    - name: Install LLVM toolchain (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew update
+        brew install llvm
+        echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
+        echo "CC=$(brew --prefix llvm)/bin/clang" >> $GITHUB_ENV
+        echo "CXX=$(brew --prefix llvm)/bin/clang++" >> $GITHUB_ENV
 
     - name: Bootstrap vcpkg (Windows)
       if: runner.os == 'Windows'

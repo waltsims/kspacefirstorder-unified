@@ -18,13 +18,8 @@ if(USE_OPENMP)
         ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
-    # Link FFTW libraries
-    if(FFTW_FOUND)
-        target_link_libraries(kspace_openmp PUBLIC ${FFTW_LIBRARIES})
-        target_include_directories(kspace_openmp PUBLIC ${FFTW_INCLUDE_DIRS})
-    else()
-        message(FATAL_ERROR "FFTW3 not found but required for OpenMP backend")
-    endif()
+    # Link FFTW libraries via imported targets (required by FindDependencies)
+    target_link_libraries(kspace_openmp PUBLIC FFTW3::fftw3f FFTW3::fftw3f_threads)
 
     # Link to core library for shared headers
     target_link_libraries(kspace_openmp PRIVATE kspace_core)
@@ -37,5 +32,4 @@ if(USE_OPENMP)
         ${CMAKE_CURRENT_SOURCE_DIR}
     )
 endif()
-
 
