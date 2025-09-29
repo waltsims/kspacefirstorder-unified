@@ -1,69 +1,103 @@
 # Find HDF5
 set(_hdf5_hl_libs "")
+set(_hdf5_found_manual OFF)
+set(_hdf5_candidate_prefixes "")
 
-if(DEFINED ENV{HDF5_ROOT} AND NOT HDF5_ROOT)
+if(NOT DEFINED HDF5_ROOT AND DEFINED ENV{HDF5_ROOT})
     set(HDF5_ROOT $ENV{HDF5_ROOT})
 endif()
-if(DEFINED ENV{HDF5_DIR} AND NOT HDF5_DIR)
+if(NOT DEFINED HDF5_DIR AND DEFINED ENV{HDF5_DIR})
     set(HDF5_DIR $ENV{HDF5_DIR})
 endif()
 
-find_package(HDF5 COMPONENTS C HL QUIET)
+if(HDF5_ROOT)
+    list(APPEND _hdf5_candidate_prefixes ${HDF5_ROOT})
+endif()
+if(HDF5_DIR)
+    list(APPEND _hdf5_candidate_prefixes ${HDF5_DIR})
+    get_filename_component(_hdf5_dir_parent ${HDF5_DIR} DIRECTORY)
+    if(_hdf5_dir_parent)
+        list(APPEND _hdf5_candidate_prefixes ${_hdf5_dir_parent})
+    endif()
+endif()
+if(CMAKE_PREFIX_PATH)
+    foreach(_prefix IN LISTS CMAKE_PREFIX_PATH)
+        if(_prefix)
+            list(APPEND _hdf5_candidate_prefixes ${_prefix})
+        endif()
+    endforeach()
+endif()
+list(REMOVE_DUPLICATES _hdf5_candidate_prefixes)
 
-if(NOT HDF5_FOUND AND HDF5_ROOT)
-    message(STATUS "HDF5 not found via CMake module, attempting manual lookup in ${HDF5_ROOT}")
-    set(_hdf5_candidate_includes
-        ${HDF5_ROOT}/include
-        ${HDF5_ROOT}/Include
-    )
-    set(_hdf5_candidate_libs
-        ${HDF5_ROOT}/lib
-        ${HDF5_ROOT}/Lib
-        ${HDF5_ROOT}/bin
-        ${HDF5_ROOT}/Bin
-    )
+if(_hdf5_candidate_prefixes)
+    set(_hdf5_candidate_includes "")
+    set(_hdf5_candidate_libs "")
+    foreach(_prefix IN LISTS _hdf5_candidate_prefixes)
+        list(APPEND _hdf5_candidate_includes
+            ${_prefix}/include
+            ${_prefix}/Include
+            ${_prefix}/include/hdf5
+            ${_prefix}/include/hdf5/serial
+        )
+        list(APPEND _hdf5_candidate_libs
+            ${_prefix}/lib
+            ${_prefix}/Lib
+            ${_prefix}/lib/release
+            ${_prefix}/lib/shared
+            ${_prefix}/bin
+            ${_prefix}/Bin
+        )
+    endforeach()
+    list(REMOVE_DUPLICATES _hdf5_candidate_includes)
+    list(REMOVE_DUPLICATES _hdf5_candidate_libs)
 
     find_path(HDF5_INCLUDE_DIRS
         NAMES hdf5.h
         PATHS ${_hdf5_candidate_includes}
         NO_DEFAULT_PATH
+        NO_CACHE
     )
 
     find_library(HDF5_C_LIBRARY
-        NAMES hdf5 libhdf5
+        NAMES hdf5 libhdf5 hdf5dll libhdf5dll
         PATHS ${_hdf5_candidate_libs}
         NO_DEFAULT_PATH
+        NO_CACHE
     )
 
     find_library(HDF5_HL_LIBRARY
-        NAMES hdf5_hl libhdf5_hl
+        NAMES hdf5_hl libhdf5_hl hdf5_hldll libhdf5_hldll
         PATHS ${_hdf5_candidate_libs}
         NO_DEFAULT_PATH
+        NO_CACHE
     )
 
-    if(HDF5_INCLUDE_DIRS AND HDF5_C_LIBRARY)
+    if(HDF5_INCLUDE_DIRS AND HDF5_C_LIBRARY AND HDF5_HL_LIBRARY)
+        set(_hdf5_found_manual ON)
         set(HDF5_FOUND TRUE)
-        set(HDF5_LIBRARIES ${HDF5_C_LIBRARY})
+        set(HDF5_LIBRARIES ${HDF5_C_LIBRARY} ${HDF5_HL_LIBRARY})
         set(HDF5_LIBRARY ${HDF5_C_LIBRARY})
         set(HDF5_INCLUDE_DIR ${HDF5_INCLUDE_DIRS})
-        if(HDF5_HL_LIBRARY)
-            set(_hdf5_hl_libs ${HDF5_HL_LIBRARY})
-            set(HDF5_HL_LIBRARIES ${HDF5_HL_LIBRARY})
-        endif()
+        set(HDF5_HL_LIBRARIES ${HDF5_HL_LIBRARY})
         if(NOT HDF5_VERSION)
             set(HDF5_VERSION "manual")
         endif()
+        message(STATUS "HDF5 located via manual search: ${HDF5_INCLUDE_DIRS}")
+    else()
+        message(STATUS "Manual HDF5 lookup failed with candidates:")
+        message(STATUS "  Includes: ${_hdf5_candidate_includes}")
+        message(STATUS "  Libs: ${_hdf5_candidate_libs}")
     endif()
 endif()
 
-if(NOT HDF5_FOUND)
-    message(FATAL_ERROR "HDF5 not found. Please install HDF5 with C++ support (see DEPENDENCIES.md)")
+if(NOT _hdf5_found_manual)
+    find_package(HDF5 COMPONENTS C HL REQUIRED)
 endif()
 
 # Ensure high-level (H5LT) libs are linked
-if(NOT _hdf5_hl_libs AND DEFINED HDF5_HL_LIBRARIES)
+if(DEFINED HDF5_HL_LIBRARIES)
     set(_hdf5_hl_libs ${HDF5_HL_LIBRARIES})
-elseif(NOT _hdf5_hl_libs AND DEFINED HDF5_C_HL_LIBRARY)
+elseif(DEFINED HDF5_C_HL_LIBRARY)
     set(_hdf5_hl_libs ${HDF5_C_HL_LIBRARY})
 endif()
 
