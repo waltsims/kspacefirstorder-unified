@@ -66,11 +66,10 @@ target_include_directories(kspace_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/platforms
-    ${HDF5_INCLUDE_DIRS}
 )
 
-# Link HDF5 to core library
-target_link_libraries(kspace_core PUBLIC ${HDF5_LIBRARIES})
+# Link HDF5 via unified interface target
+target_link_libraries(kspace_core PUBLIC kspace_hdf5)
 
 # Link compiler flags
 target_link_libraries(kspace_core PUBLIC kspace_compiler_flags)

@@ -20,11 +20,8 @@ set_target_properties(kspaceFirstOrder PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}/Release"
 )
 
-# Link core dependencies
-target_link_libraries(kspaceFirstOrder PRIVATE
-    kspace_core
-    ${HDF5_LIBRARIES}
-)
+# Link core library
+target_link_libraries(kspaceFirstOrder PRIVATE kspace_core)
 
 # Link backend-specific libraries
 if(USE_CUDA)
@@ -36,8 +33,7 @@ elseif(USE_OPENMP)
     )
 endif()
 
-# Include directories
+# Include directories (backend-specific)
 target_include_directories(kspaceFirstOrder PRIVATE 
-    ${HDF5_INCLUDE_DIRS}
     $<$<BOOL:${USE_OPENMP}>:${FFTW_INCLUDE_DIRS}>
 )

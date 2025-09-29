@@ -1,123 +1,166 @@
-# Find HDF5
-set(_hdf5_hl_libs "")
-set(_hdf5_found_manual OFF)
-set(_hdf5_candidate_prefixes "")
+######################################################################
+# HDF5
+######################################################################
 
-if(NOT DEFINED HDF5_ROOT AND DEFINED ENV{HDF5_ROOT})
-    set(HDF5_ROOT $ENV{HDF5_ROOT})
-endif()
-if(NOT DEFINED HDF5_DIR AND DEFINED ENV{HDF5_DIR})
-    set(HDF5_DIR $ENV{HDF5_DIR})
-endif()
+# Prefer serial HDF5 unless parallel is explicitly requested externally
+set(HDF5_PREFER_PARALLEL OFF CACHE BOOL "Prefer parallel HDF5 (MPI)")
 
-if(HDF5_ROOT)
-    file(TO_CMAKE_PATH "${HDF5_ROOT}" _hdf5_root_norm)
-    list(APPEND _hdf5_candidate_prefixes ${_hdf5_root_norm})
-endif()
-if(HDF5_DIR)
-    file(TO_CMAKE_PATH "${HDF5_DIR}" _hdf5_dir_norm)
-    list(APPEND _hdf5_candidate_prefixes ${_hdf5_dir_norm})
-    if(EXISTS "${_hdf5_dir_norm}/..")
-        get_filename_component(_hdf5_dir_parent ${_hdf5_dir_norm} DIRECTORY)
-        if(_hdf5_dir_parent)
-            list(APPEND _hdf5_candidate_prefixes ${_hdf5_dir_parent})
-        endif()
-    endif()
-endif()
-if(CMAKE_PREFIX_PATH)
-    foreach(_prefix IN LISTS CMAKE_PREFIX_PATH)
-        if(_prefix)
-            file(TO_CMAKE_PATH "${_prefix}" _prefix_norm)
-            list(APPEND _hdf5_candidate_prefixes ${_prefix_norm})
-        endif()
-    endforeach()
-endif()
-list(REMOVE_DUPLICATES _hdf5_candidate_prefixes)
+# 1) Prefer config packages (modern, provide imported targets)
+# 2) Fallback to module
+# 3) Last resort: manual search using env/CMAKE_PREFIX_PATH hints
 
-if(_hdf5_candidate_prefixes)
-    find_path(HDF5_INCLUDE_DIRS
-        NAMES hdf5.h H5public.h
-        PATHS ${_hdf5_candidate_prefixes}
-        PATH_SUFFIXES
-            include
-            Include
-            include\release
-            include\Release
-            include/hdf5
-            include/hdf5/serial
-            include\hdf5
-            include\hdf5\serial
-        NO_DEFAULT_PATH
-        NO_CACHE
-    )
+set(_hdf5_found FALSE)
+set(_hdf5_found_manual FALSE)
 
-    find_library(HDF5_C_LIBRARY
-        NAMES hdf5 libhdf5 hdf5dll libhdf5dll hdf5.lib
-        PATHS ${_hdf5_candidate_prefixes}
-        PATH_SUFFIXES
-            lib
-            Lib
-            lib\release
-            lib\Release
-            lib\shared
-            bin
-            Bin
-        NO_DEFAULT_PATH
-        NO_CACHE
-    )
-
-    find_library(HDF5_HL_LIBRARY
-        NAMES hdf5_hl libhdf5_hl hdf5_hldll libhdf5_hldll hdf5_hl.lib
-        PATHS ${_hdf5_candidate_prefixes}
-        PATH_SUFFIXES
-            lib
-            Lib
-            lib\release
-            lib\Release
-            lib\shared
-            bin
-            Bin
-        NO_DEFAULT_PATH
-        NO_CACHE
-    )
-
-    if(HDF5_INCLUDE_DIRS AND HDF5_C_LIBRARY AND HDF5_HL_LIBRARY)
-        set(_hdf5_found_manual ON)
-        set(HDF5_FOUND TRUE)
-        set(HDF5_LIBRARIES ${HDF5_C_LIBRARY} ${HDF5_HL_LIBRARY})
-        set(HDF5_LIBRARY ${HDF5_C_LIBRARY})
-        set(HDF5_INCLUDE_DIR ${HDF5_INCLUDE_DIRS})
-        set(HDF5_HL_LIBRARIES ${HDF5_HL_LIBRARY})
-        if(NOT HDF5_VERSION)
-            set(HDF5_VERSION "manual")
-        endif()
-        message(STATUS "HDF5 located via manual search: ${HDF5_INCLUDE_DIRS}")
-    else()
-        message(STATUS "Manual HDF5 lookup failed with prefixes: ${_hdf5_candidate_prefixes}")
+# Try config mode first
+find_package(HDF5 CONFIG QUIET COMPONENTS C HL)
+if(HDF5_FOUND)
+    set(_hdf5_found TRUE)
+else()
+    # Try classic Find module next
+    find_package(HDF5 MODULE QUIET COMPONENTS C HL)
+    if(HDF5_FOUND)
+        set(_hdf5_found TRUE)
     endif()
 endif()
 
-if(NOT _hdf5_found_manual)
-    find_package(HDF5 COMPONENTS C HL REQUIRED)
+# Manual fallback for non-standard layouts when both fail
+if(NOT _hdf5_found)
+    set(_hdf5_candidate_prefixes "")
+    if(NOT DEFINED HDF5_ROOT AND DEFINED ENV{HDF5_ROOT})
+        set(HDF5_ROOT $ENV{HDF5_ROOT})
+    endif()
+    if(NOT DEFINED HDF5_DIR AND DEFINED ENV{HDF5_DIR})
+        set(HDF5_DIR $ENV{HDF5_DIR})
+    endif()
+    if(HDF5_ROOT)
+        file(TO_CMAKE_PATH "${HDF5_ROOT}" _hdf5_root_norm)
+        list(APPEND _hdf5_candidate_prefixes ${_hdf5_root_norm})
+    endif()
+    if(HDF5_DIR)
+        file(TO_CMAKE_PATH "${HDF5_DIR}" _hdf5_dir_norm)
+        list(APPEND _hdf5_candidate_prefixes ${_hdf5_dir_norm})
+        if(EXISTS "${_hdf5_dir_norm}/..")
+            get_filename_component(_hdf5_dir_parent ${_hdf5_dir_norm} DIRECTORY)
+            if(_hdf5_dir_parent)
+                list(APPEND _hdf5_candidate_prefixes ${_hdf5_dir_parent})
+            endif()
+        endif()
+    endif()
+    if(CMAKE_PREFIX_PATH)
+        foreach(_prefix IN LISTS CMAKE_PREFIX_PATH)
+            if(_prefix)
+                file(TO_CMAKE_PATH "${_prefix}" _prefix_norm)
+                list(APPEND _hdf5_candidate_prefixes ${_prefix_norm})
+            endif()
+        endforeach()
+    endif()
+    list(REMOVE_DUPLICATES _hdf5_candidate_prefixes)
+
+    if(_hdf5_candidate_prefixes)
+        find_path(HDF5_INCLUDE_DIRS
+            NAMES hdf5.h H5public.h
+            PATHS ${_hdf5_candidate_prefixes}
+            PATH_SUFFIXES
+                include
+                Include
+                include/release
+                include/Release
+                include/hdf5
+                include/hdf5/serial
+            NO_DEFAULT_PATH
+            NO_CACHE
+        )
+
+        find_library(HDF5_C_LIBRARY
+            NAMES hdf5 libhdf5 hdf5dll libhdf5dll hdf5.lib
+            PATHS ${_hdf5_candidate_prefixes}
+            PATH_SUFFIXES
+                lib
+                Lib
+                lib/release
+                lib/Release
+                lib/shared
+                bin
+                Bin
+            NO_DEFAULT_PATH
+            NO_CACHE
+        )
+
+        find_library(HDF5_HL_LIBRARY
+            NAMES hdf5_hl libhdf5_hl hdf5_hldll libhdf5_hldll hdf5_hl.lib
+            PATHS ${_hdf5_candidate_prefixes}
+            PATH_SUFFIXES
+                lib
+                Lib
+                lib/release
+                lib/Release
+                lib/shared
+                bin
+                Bin
+            NO_DEFAULT_PATH
+            NO_CACHE
+        )
+
+        if(HDF5_INCLUDE_DIRS AND HDF5_C_LIBRARY AND HDF5_HL_LIBRARY)
+            set(_hdf5_found_manual TRUE)
+            set(HDF5_FOUND TRUE)
+            set(HDF5_LIBRARIES ${HDF5_C_LIBRARY} ${HDF5_HL_LIBRARY})
+            set(HDF5_LIBRARY ${HDF5_C_LIBRARY})
+            set(HDF5_HL_LIBRARIES ${HDF5_HL_LIBRARY})
+            if(NOT HDF5_VERSION)
+                set(HDF5_VERSION "manual")
+            endif()
+            message(STATUS "HDF5 located via manual search: ${HDF5_INCLUDE_DIRS}")
+        else()
+            message(STATUS "Manual HDF5 lookup failed with prefixes: ${_hdf5_candidate_prefixes}")
+        endif()
+    endif()
 endif()
 
-# Ensure high-level (H5LT) libs are linked
-if(DEFINED HDF5_HL_LIBRARIES)
-    set(_hdf5_hl_libs ${HDF5_HL_LIBRARIES})
-elseif(DEFINED HDF5_C_HL_LIBRARY)
-    set(_hdf5_hl_libs ${HDF5_C_HL_LIBRARY})
+if(NOT HDF5_FOUND)
+    message(FATAL_ERROR "HDF5 not found. Set HDF5_DIR or HDF5_ROOT, or install HDF5 (see DEPENDENCIES.md)")
 endif()
 
-if(_hdf5_hl_libs)
-    list(APPEND HDF5_LIBRARIES ${_hdf5_hl_libs})
+# Build a thin interface target to propagate includes and link libs consistently
+add_library(kspace_hdf5 INTERFACE)
+
+# Prefer imported targets when available (config mode)
+set(_hdf5_core_target "")
+set(_hdf5_hl_target "")
+foreach(_cand IN ITEMS hdf5::hdf5 hdf5::hdf5-shared hdf5::hdf5-static)
+    if(TARGET ${_cand})
+        set(_hdf5_core_target ${_cand})
+        break()
+    endif()
+endforeach()
+foreach(_cand IN ITEMS hdf5::hdf5_hl hdf5::hdf5_hl-shared hdf5::hdf5_hl-static)
+    if(TARGET ${_cand})
+        set(_hdf5_hl_target ${_cand})
+        break()
+    endif()
+endforeach()
+
+if(_hdf5_core_target)
+    target_link_libraries(kspace_hdf5 INTERFACE ${_hdf5_core_target})
+endif()
+if(_hdf5_hl_target)
+    target_link_libraries(kspace_hdf5 INTERFACE ${_hdf5_hl_target})
+endif()
+
+# If no imported targets, fall back to variables from Find module/manual search
+if(NOT _hdf5_core_target)
+    if(DEFINED HDF5_LIBRARIES)
+        target_link_libraries(kspace_hdf5 INTERFACE ${HDF5_LIBRARIES})
+    endif()
+    if(DEFINED HDF5_INCLUDE_DIRS)
+        target_include_directories(kspace_hdf5 INTERFACE ${HDF5_INCLUDE_DIRS})
+    endif()
 endif()
 
 message(STATUS "✓ Found HDF5 ${HDF5_VERSION}")
 message(STATUS "  - Include dirs: ${HDF5_INCLUDE_DIRS}")
 message(STATUS "  - Libraries: ${HDF5_LIBRARIES}")
-if(_hdf5_hl_libs)
-    message(STATUS "  - High-level libs: ${_hdf5_hl_libs}")
-endif()
 
 # Find FFTW3 (for OpenMP backend)
 if(USE_OPENMP)

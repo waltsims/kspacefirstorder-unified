@@ -85,18 +85,24 @@ jobs:
         7z x hdf5.zip -o"C:\"
         $hdf5_path = "C:\HDF_Group\HDF5\1.14.6"
         echo "HDF5_ROOT=$hdf5_path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "HDF5_DIR=$hdf5_path\cmake" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         echo "$hdf5_path\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-    - name: Install FFTW (Windows)
+    - name: Bootstrap vcpkg (Windows)
       if: runner.os == 'Windows' && matrix.needs_fftw
       shell: powershell
       run: |
-        $fftw_url = "ftp://ftp.fftw.org/pub/fftw/fftw-3.3.5-dll64.zip"
-        Invoke-WebRequest -Uri $fftw_url -OutFile fftw.zip
-        7z x fftw.zip -o"C:\fftw"
-        $fftw_path = "C:\fftw"
-        echo "FFTW_ROOT=$fftw_path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        echo "$fftw_path" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        cd third-party\vcpkg
+        .\bootstrap-vcpkg.bat -disableMetrics
+    
+    - name: Install FFTW via vcpkg (Windows)
+      if: runner.os == 'Windows' && matrix.needs_fftw
+      shell: powershell
+      run: |
+        third-party\vcpkg\vcpkg.exe install fftw3[threads]:x64-windows
+        $fftw_root = "${{ github.workspace }}\third-party\vcpkg\installed\x64-windows"
+        echo "FFTW_ROOT=$fftw_root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "$fftw_root\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     # Install CUDA Toolkit on Windows hosted runners using NVIDIA's network installer.
     # This enables building CUDA code (nvcc and headers) but does NOT provide a GPU for runtime tests.
@@ -127,15 +133,17 @@ jobs:
         cmake -B build \
           ${{ matrix.cmake_flags }} \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_PREFIX_PATH="$(brew --prefix hdf5);$(brew --prefix fftw);$(brew --prefix libomp)"
+          -DCMAKE_PREFIX_PATH="$(brew --prefix hdf5);$(brew --prefix fftw);$(brew --prefix libomp)" \
+          -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON \
+          -DHDF5_PREFER_PARALLEL=OFF
 
     - name: Configure CMake (Linux)
       if: runner.os == 'Linux'
-      run: cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release
+      run: cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON -DHDF5_PREFER_PARALLEL=OFF
 
     - name: Configure CMake (Windows)
       if: runner.os == 'Windows'
-      run: cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ env.HDF5_ROOT }};${{ env.FFTW_ROOT }}"
+      run: cmake -B build ${{ matrix.cmake_flags }} -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON -DHDF5_PREFER_PARALLEL=OFF -DHDF5_DIR="${{ env.HDF5_DIR }}" -DCMAKE_PREFIX_PATH="${{ env.HDF5_ROOT }};${{ env.HDF5_DIR }};${{ env.HDF5_ROOT }}\lib\cmake\hdf5;${{ env.FFTW_ROOT }}"
 
     - name: Build (Unix)
       if: runner.os != 'Windows'
