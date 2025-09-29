@@ -11,63 +11,72 @@ if(NOT DEFINED HDF5_DIR AND DEFINED ENV{HDF5_DIR})
 endif()
 
 if(HDF5_ROOT)
-    list(APPEND _hdf5_candidate_prefixes ${HDF5_ROOT})
+    file(TO_CMAKE_PATH "${HDF5_ROOT}" _hdf5_root_norm)
+    list(APPEND _hdf5_candidate_prefixes ${_hdf5_root_norm})
 endif()
 if(HDF5_DIR)
-    list(APPEND _hdf5_candidate_prefixes ${HDF5_DIR})
-    get_filename_component(_hdf5_dir_parent ${HDF5_DIR} DIRECTORY)
-    if(_hdf5_dir_parent)
-        list(APPEND _hdf5_candidate_prefixes ${_hdf5_dir_parent})
+    file(TO_CMAKE_PATH "${HDF5_DIR}" _hdf5_dir_norm)
+    list(APPEND _hdf5_candidate_prefixes ${_hdf5_dir_norm})
+    if(EXISTS "${_hdf5_dir_norm}/..")
+        get_filename_component(_hdf5_dir_parent ${_hdf5_dir_norm} DIRECTORY)
+        if(_hdf5_dir_parent)
+            list(APPEND _hdf5_candidate_prefixes ${_hdf5_dir_parent})
+        endif()
     endif()
 endif()
 if(CMAKE_PREFIX_PATH)
     foreach(_prefix IN LISTS CMAKE_PREFIX_PATH)
         if(_prefix)
-            list(APPEND _hdf5_candidate_prefixes ${_prefix})
+            file(TO_CMAKE_PATH "${_prefix}" _prefix_norm)
+            list(APPEND _hdf5_candidate_prefixes ${_prefix_norm})
         endif()
     endforeach()
 endif()
 list(REMOVE_DUPLICATES _hdf5_candidate_prefixes)
 
 if(_hdf5_candidate_prefixes)
-    set(_hdf5_candidate_includes "")
-    set(_hdf5_candidate_libs "")
-    foreach(_prefix IN LISTS _hdf5_candidate_prefixes)
-        list(APPEND _hdf5_candidate_includes
-            ${_prefix}/include
-            ${_prefix}/Include
-            ${_prefix}/include/hdf5
-            ${_prefix}/include/hdf5/serial
-        )
-        list(APPEND _hdf5_candidate_libs
-            ${_prefix}/lib
-            ${_prefix}/Lib
-            ${_prefix}/lib/release
-            ${_prefix}/lib/shared
-            ${_prefix}/bin
-            ${_prefix}/Bin
-        )
-    endforeach()
-    list(REMOVE_DUPLICATES _hdf5_candidate_includes)
-    list(REMOVE_DUPLICATES _hdf5_candidate_libs)
-
     find_path(HDF5_INCLUDE_DIRS
-        NAMES hdf5.h
-        PATHS ${_hdf5_candidate_includes}
+        NAMES hdf5.h H5public.h
+        PATHS ${_hdf5_candidate_prefixes}
+        PATH_SUFFIXES
+            include
+            Include
+            include\release
+            include\Release
+            include/hdf5
+            include/hdf5/serial
+            include\hdf5
+            include\hdf5\serial
         NO_DEFAULT_PATH
         NO_CACHE
     )
 
     find_library(HDF5_C_LIBRARY
-        NAMES hdf5 libhdf5 hdf5dll libhdf5dll
-        PATHS ${_hdf5_candidate_libs}
+        NAMES hdf5 libhdf5 hdf5dll libhdf5dll hdf5.lib
+        PATHS ${_hdf5_candidate_prefixes}
+        PATH_SUFFIXES
+            lib
+            Lib
+            lib\release
+            lib\Release
+            lib\shared
+            bin
+            Bin
         NO_DEFAULT_PATH
         NO_CACHE
     )
 
     find_library(HDF5_HL_LIBRARY
-        NAMES hdf5_hl libhdf5_hl hdf5_hldll libhdf5_hldll
-        PATHS ${_hdf5_candidate_libs}
+        NAMES hdf5_hl libhdf5_hl hdf5_hldll libhdf5_hldll hdf5_hl.lib
+        PATHS ${_hdf5_candidate_prefixes}
+        PATH_SUFFIXES
+            lib
+            Lib
+            lib\release
+            lib\Release
+            lib\shared
+            bin
+            Bin
         NO_DEFAULT_PATH
         NO_CACHE
     )
@@ -84,9 +93,7 @@ if(_hdf5_candidate_prefixes)
         endif()
         message(STATUS "HDF5 located via manual search: ${HDF5_INCLUDE_DIRS}")
     else()
-        message(STATUS "Manual HDF5 lookup failed with candidates:")
-        message(STATUS "  Includes: ${_hdf5_candidate_includes}")
-        message(STATUS "  Libs: ${_hdf5_candidate_libs}")
+        message(STATUS "Manual HDF5 lookup failed with prefixes: ${_hdf5_candidate_prefixes}")
     endif()
 endif()
 
