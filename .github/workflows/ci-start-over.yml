@@ -192,13 +192,14 @@ jobs:
         with:
           cuda: '10.2.89'
 
-      - name: Set up vcpkg and install HDF5 + deps
-        uses: microsoft/vcpkg-action@v0
-        with:
-          triplet: x64-windows
-          pkgs: |
-            hdf5[hl,szip]
-            zlib
+      - name: Install vcpkg and dependencies (HDF5 + zlib)
+        shell: pwsh
+        run: |
+          $vcpkgRoot = "$env:RUNNER_TEMP\vcpkg"
+          git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
+          & "$vcpkgRoot\bootstrap-vcpkg.bat"
+          & "$vcpkgRoot\vcpkg.exe" install hdf5[core,hl,szip]:x64-windows zlib:x64-windows
+          echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Prepare HDF5 import libs with expected names
         shell: pwsh
