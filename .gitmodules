@@ -16,7 +16,7 @@
 [submodule "repos/kspaceFirstOrder-cuda-linux"]
 	path = repos/kspaceFirstOrder-cuda-linux
 	url = https://github.com/waltsims/kspaceFirstOrder-CUDA-linux
-	branch = main
+	branch = cuda-12-support
 [submodule "repos/kspaceFirstOrder-cuda-windows"]
 	path = repos/kspaceFirstOrder-cuda-windows
 	url = https://github.com/waltsims/kspaceFirstOrder-CUDA-windows.git
