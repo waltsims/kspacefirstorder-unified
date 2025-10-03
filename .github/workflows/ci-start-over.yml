@@ -175,3 +175,66 @@ jobs:
           echo "Brew prefix:"; brew --prefix
           echo "libomp:"; ls -la $(brew --prefix libomp)/lib || true
           echo "fftw libs:"; ls -la $(brew --prefix fftw)/lib || true
+
+  windows-cuda:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Install CUDA Toolkit (Windows)
+        uses: Jimver/cuda-toolkit@v0.2.11
+        with:
+          cuda: '10.2.89'
+
+      - name: Set up vcpkg and install HDF5 + deps
+        uses: microsoft/vcpkg-action@v0
+        with:
+          triplet: x64-windows
+          pkgs: |
+            hdf5[hl,szip]
+            zlib
+
+      - name: Prepare HDF5 import libs with expected names
+        shell: pwsh
+        run: |
+          $libDir = "$env:VCPKG_ROOT\installed\x64-windows\lib"
+          $aliasDir = "$env:RUNNER_TEMP\hdf5-alias-libs"
+          New-Item -ItemType Directory -Force -Path $aliasDir | Out-Null
+          Copy-Item "$libDir\hdf5.lib"       "$aliasDir\libhdf5.lib" -Force
+          Copy-Item "$libDir\hdf5_hl.lib"    "$aliasDir\libhdf5_hl.lib" -Force
+          Copy-Item "$libDir\zlib.lib"       "$aliasDir\libzlib.lib" -Force
+          if (Test-Path "$libDir\szip.lib") { Copy-Item "$libDir\szip.lib" "$aliasDir\libszip.lib" -Force }
+          echo "ALIAS_DIR=$aliasDir" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Build (CUDA, Windows)
+        shell: pwsh
+        env:
+          # Ensure HDF5 headers/libs are discoverable by MSBuild/Linker
+          INCLUDE: ${{ env.VCPKG_ROOT }}\installed\x64-windows\include;${{ env.INCLUDE }}
+          LIB: ${{ env.ALIAS_DIR }};${{ env.VCPKG_ROOT }}\installed\x64-windows\lib;${{ env.LIB }}
+        run: |
+          & msbuild .\repos\kspaceFirstOrder-cuda-windows\kspaceFirstOrder-CUDA.vcxproj `
+              /p:Configuration=Release /p:Platform=x64 /m
+
+      - name: Upload artifacts (CUDA Windows)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kspaceFirstOrder-cuda-windows-windows-latest
+          path: |
+            repos/kspaceFirstOrder-cuda-windows/x64/Release/kspaceFirstOrder-CUDA.exe
+          if-no-files-found: error
+
+      - name: Build diagnostics (CUDA Windows)
+        if: failure()
+        shell: pwsh
+        run: |
+          nvcc --version || $true
+          & msbuild -version || $true
+          Get-ChildItem -Recurse -Filter *.targets "C:\Program Files (x86)\Microsoft Visual Studio" -ErrorAction SilentlyContinue | Select-Object -First 5 | ForEach-Object { $_.FullName }
