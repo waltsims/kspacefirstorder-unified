@@ -188,9 +188,16 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Install CUDA Toolkit (Windows)
-        uses: Jimver/cuda-toolkit@v0.2.11
+        uses: N-Storm/cuda-toolkit@v0.2.27m
         with:
-          cuda: '10.2.89'
+          cuda: '13.0.0'
+          use-github-cache: false
+          method: local
+          linux-local-args: '["--toolkit"]'
+          use-local-cache: false
+          sub-packages: []
+          non-cuda-sub-packages: []
+          log-file-suffix: log.txt
 
       - name: Install vcpkg and dependencies (HDF5 + zlib)
         shell: pwsh
