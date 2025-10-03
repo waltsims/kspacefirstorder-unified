@@ -195,9 +195,6 @@ jobs:
           method: local
           linux-local-args: '["--toolkit"]'
           use-local-cache: false
-          sub-packages: []
-          non-cuda-sub-packages: []
-          log-file-suffix: log.txt
 
       - name: Install vcpkg and dependencies (HDF5 + zlib)
         shell: pwsh
