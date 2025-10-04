@@ -278,6 +278,11 @@ jobs:
               if ($g.Link -and $g.Link.AdditionalLibraryDirectories) {
                 $g.Link.AdditionalLibraryDirectories = '$(VCPKG_ROOT)\installed\x64-windows-static\lib;%(AdditionalLibraryDirectories)'
               }
+              if ($g.ClCompile.Optimization) {
+                if ($g.ClCompile.Optimization -eq 'MaxSpeedHighLevel') {
+                  $g.ClCompile.Optimization = 'MaxSpeed'
+                }
+              }
               if ($g.ClCompile.PreprocessorDefinitions) {
                 $defs = ($g.ClCompile.PreprocessorDefinitions | Out-String).Trim()
                 if ($defs) {
