@@ -236,3 +236,47 @@ jobs:
           nvcc --version || $true
           & msbuild -version || $true
           Get-ChildItem -Recurse -Filter *.targets "C:\Program Files (x86)\Microsoft Visual Studio" -ErrorAction SilentlyContinue | Select-Object -First 5 | ForEach-Object { $_.FullName }
+
+  windows-openmp:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Install vcpkg and deps (HDF5 + FFTW + zlib)
+        shell: pwsh
+        run: |
+          $vcpkgRoot = "$env:RUNNER_TEMP\vcpkg"
+          git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
+          & "$vcpkgRoot\bootstrap-vcpkg.bat"
+          & "$vcpkgRoot\vcpkg.exe" install hdf5[szip]:x64-windows zlib:x64-windows fftw3[openmp]:x64-windows
+          echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Build (OpenMP, Windows)
+        shell: pwsh
+        env:
+          INCLUDE: ${{ env.VCPKG_ROOT }}\installed\x64-windows\include;${{ env.INCLUDE }}
+          LIB: ${{ env.VCPKG_ROOT }}\installed\x64-windows\lib;${{ env.LIB }}
+        run: |
+          & msbuild .\repos\kspaceFirstOrder-openmp-windows\kspaceFirstOrder-OMP.vcxproj `
+              /p:Configuration=Release /p:Platform=x64 /m
+
+      - name: Upload artifacts (OpenMP Windows)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kspaceFirstOrder-openmp-windows-windows-latest
+          path: |
+            repos/kspaceFirstOrder-openmp-windows/x64/Release/kspaceFirstOrder-OMP.exe
+          if-no-files-found: error
+
+      - name: Build diagnostics (OpenMP Windows)
+        if: failure()
+        shell: pwsh
+        run: |
+          & msbuild -version || $true
