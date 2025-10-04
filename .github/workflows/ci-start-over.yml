@@ -248,20 +248,37 @@ jobs:
       - name: Set up MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Install vcpkg and deps (HDF5 + FFTW + zlib)
+      - name: Install vcpkg and deps (static + OpenMP)
         shell: pwsh
         run: |
           $vcpkgRoot = "$env:RUNNER_TEMP\vcpkg"
           git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
           & "$vcpkgRoot\bootstrap-vcpkg.bat"
-          & "$vcpkgRoot\vcpkg.exe" install hdf5[szip]:x64-windows zlib:x64-windows fftw3[openmp]:x64-windows
+          & "$vcpkgRoot\vcpkg.exe" install `
+            hdf5[szip]:x64-windows-static `
+            zlib:x64-windows-static `
+            fftw3[openmp]:x64-windows-static
           echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Patch project for static linking (HDF5 define + vcpkg paths)
+        shell: pwsh
+        run: |
+          $proj = ".\repos\kspaceFirstOrder-openmp-windows\kspaceFirstOrder-OMP.vcxproj"
+          $c = Get-Content $proj -Raw
+          # Drop dynamic HDF5 macro in Release|x64
+          $c = $c -replace '(?s)(<ItemDefinitionGroup Condition=\''\$\(Configuration\)\|\$\(Platform\)\'=='Release\|x64'\'>.*?<PreprocessorDefinitions>)([^<]*?)H5_BUILT_AS_DYNAMIC_LIB;([^<]*?)(</PreprocessorDefinitions>)', '$1$2$3$4'
+          # Point AdditionalLibraryDirectories to static triplet
+          $c = $c -replace '(?s)(<ItemDefinitionGroup Condition=\''\$\(Configuration\)\|\$\(Platform\)\'=='Release\|x64'\'>.*?<AdditionalLibraryDirectories>)[^<]*(</AdditionalLibraryDirectories>)', '$1$(VCPKG_ROOT)\\installed\\x64-windows-static\\lib$2'
+          # Point AdditionalIncludeDirectories for Debug|x64 and Release|x64 to static include
+          $c = $c -replace '(?s)(<ItemDefinitionGroup Condition=\''\$\(Configuration\)\|\$\(Platform\)\'=='Debug\|x64'\'>.*?<AdditionalIncludeDirectories>)[^<]*(</AdditionalIncludeDirectories>)', '$1$(VCPKG_ROOT)\\installed\\x64-windows-static\\include;.$2'
+          $c = $c -replace '(?s)(<ItemDefinitionGroup Condition=\''\$\(Configuration\)\|\$\(Platform\)\'=='Release\|x64'\'>.*?<AdditionalIncludeDirectories>)[^<]*(</AdditionalIncludeDirectories>)', '$1$(VCPKG_ROOT)\\installed\\x64-windows-static\\include;.$2'
+          Set-Content $proj $c
 
       - name: Build (OpenMP, Windows)
         shell: pwsh
         env:
-          INCLUDE: ${{ env.VCPKG_ROOT }}\installed\x64-windows\include;${{ env.INCLUDE }}
-          LIB: ${{ env.VCPKG_ROOT }}\installed\x64-windows\lib;${{ env.LIB }}
+          INCLUDE: ${{ env.VCPKG_ROOT }}\installed\x64-windows-static\include;${{ env.INCLUDE }}
+          LIB: ${{ env.VCPKG_ROOT }}\installed\x64-windows-static\lib;${{ env.LIB }}
         run: |
           & msbuild .\repos\kspaceFirstOrder-openmp-windows\kspaceFirstOrder-OMP.vcxproj `
               /p:Configuration=Release /p:Platform=x64 /m
