@@ -195,6 +195,9 @@ jobs:
           method: local
           linux-local-args: '["--toolkit"]'
           use-local-cache: false
+          sub-packages: '[]'
+          non-cuda-sub-packages: '[]'
+          log-file-suffix: log.txt
 
       - name: Install vcpkg and dependencies (HDF5 + zlib)
         shell: pwsh
@@ -205,24 +208,14 @@ jobs:
           & "$vcpkgRoot\vcpkg.exe" install hdf5[szip]:x64-windows zlib:x64-windows
           echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Prepare HDF5 import libs with expected names
-        shell: pwsh
-        run: |
-          $libDir = "$env:VCPKG_ROOT\installed\x64-windows\lib"
-          $aliasDir = "$env:RUNNER_TEMP\hdf5-alias-libs"
-          New-Item -ItemType Directory -Force -Path $aliasDir | Out-Null
-          Copy-Item "$libDir\hdf5.lib"       "$aliasDir\libhdf5.lib" -Force
-          Copy-Item "$libDir\hdf5_hl.lib"    "$aliasDir\libhdf5_hl.lib" -Force
-          Copy-Item "$libDir\zlib.lib"       "$aliasDir\libzlib.lib" -Force
-          if (Test-Path "$libDir\szip.lib") { Copy-Item "$libDir\szip.lib" "$aliasDir\libszip.lib" -Force }
-          echo "ALIAS_DIR=$aliasDir" | Out-File -FilePath $env:GITHUB_ENV -Append
+      # Removed legacy alias step; project links vcpkg libs directly
 
       - name: Build (CUDA, Windows)
         shell: pwsh
         env:
           # Ensure HDF5 headers/libs are discoverable by MSBuild/Linker
           INCLUDE: ${{ env.VCPKG_ROOT }}\installed\x64-windows\include;${{ env.INCLUDE }}
-          LIB: ${{ env.ALIAS_DIR }};${{ env.VCPKG_ROOT }}\installed\x64-windows\lib;${{ env.LIB }}
+          LIB: ${{ env.VCPKG_ROOT }}\installed\x64-windows\lib;${{ env.LIB }}
         run: |
           & msbuild .\repos\kspaceFirstOrder-cuda-windows\kspaceFirstOrder-CUDA.vcxproj `
               /p:Configuration=Release /p:Platform=x64 /m
