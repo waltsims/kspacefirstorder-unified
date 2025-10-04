@@ -264,15 +264,30 @@ jobs:
         shell: pwsh
         run: |
           $proj = ".\repos\kspaceFirstOrder-openmp-windows\kspaceFirstOrder-OMP.vcxproj"
-          $c = Get-Content $proj -Raw
-          # Drop dynamic HDF5 macro in Release|x64
-          $c = $c -replace '(?s)(<ItemDefinitionGroup Condition=\''\$\(Configuration\)\|\$\(Platform\)\'=='Release\|x64'\'>.*?<PreprocessorDefinitions>)([^<]*?)H5_BUILT_AS_DYNAMIC_LIB;([^<]*?)(</PreprocessorDefinitions>)', '$1$2$3$4'
-          # Point AdditionalLibraryDirectories to static triplet
-          $c = $c -replace '(?s)(<ItemDefinitionGroup Condition=\''\$\(Configuration\)\|\$\(Platform\)\'=='Release\|x64'\'>.*?<AdditionalLibraryDirectories>)[^<]*(</AdditionalLibraryDirectories>)', '$1$(VCPKG_ROOT)\\installed\\x64-windows-static\\lib$2'
-          # Point AdditionalIncludeDirectories for Debug|x64 and Release|x64 to static include
-          $c = $c -replace '(?s)(<ItemDefinitionGroup Condition=\''\$\(Configuration\)\|\$\(Platform\)\'=='Debug\|x64'\'>.*?<AdditionalIncludeDirectories>)[^<]*(</AdditionalIncludeDirectories>)', '$1$(VCPKG_ROOT)\\installed\\x64-windows-static\\include;.$2'
-          $c = $c -replace '(?s)(<ItemDefinitionGroup Condition=\''\$\(Configuration\)\|\$\(Platform\)\'=='Release\|x64'\'>.*?<AdditionalIncludeDirectories>)[^<]*(</AdditionalIncludeDirectories>)', '$1$(VCPKG_ROOT)\\installed\\x64-windows-static\\include;.$2'
-          Set-Content $proj $c
+          [xml]$xml = Get-Content $proj -Raw
+          $ns = New-Object System.Xml.XmlNamespaceManager($xml.NameTable)
+          $ns.AddNamespace('msb','http://schemas.microsoft.com/developer/msbuild/2003')
+          $idgs = $xml.SelectNodes('//msb:ItemDefinitionGroup', $ns)
+          foreach ($g in $idgs) {
+            $cond = $g.GetAttribute('Condition')
+            if (-not $cond) { continue }
+            if ($cond -match 'x64') {
+              if ($g.ClCompile.AdditionalIncludeDirectories) {
+                $g.ClCompile.AdditionalIncludeDirectories = '$(VCPKG_ROOT)\installed\x64-windows-static\include;.;%(AdditionalIncludeDirectories)'
+              }
+              if ($g.Link -and $g.Link.AdditionalLibraryDirectories) {
+                $g.Link.AdditionalLibraryDirectories = '$(VCPKG_ROOT)\installed\x64-windows-static\lib;%(AdditionalLibraryDirectories)'
+              }
+              if ($g.ClCompile.PreprocessorDefinitions) {
+                $defs = ($g.ClCompile.PreprocessorDefinitions | Out-String).Trim()
+                if ($defs) {
+                  $parts = $defs -split ';' | Where-Object { $_ -and $_ -ne 'H5_BUILT_AS_DYNAMIC_LIB' }
+                  $g.ClCompile.PreprocessorDefinitions = ($parts -join ';')
+                }
+              }
+            }
+          }
+          $xml.Save($proj)
 
       - name: Build (OpenMP, Windows)
         shell: pwsh
