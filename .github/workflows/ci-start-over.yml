@@ -256,49 +256,16 @@ jobs:
           & "$vcpkgRoot\bootstrap-vcpkg.bat"
           & "$vcpkgRoot\vcpkg.exe" install `
             hdf5[szip]:x64-windows-static `
+            libaec:x64-windows-static `
             zlib:x64-windows-static `
             fftw3[openmp]:x64-windows-static
           echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: Patch project for static linking (HDF5 define + vcpkg paths)
-        shell: pwsh
-        run: |
-          $proj = ".\repos\kspaceFirstOrder-openmp-windows\kspaceFirstOrder-OMP.vcxproj"
-          [xml]$xml = Get-Content $proj -Raw
-          $ns = New-Object System.Xml.XmlNamespaceManager($xml.NameTable)
-          $ns.AddNamespace('msb','http://schemas.microsoft.com/developer/msbuild/2003')
-          $idgs = $xml.SelectNodes('//msb:ItemDefinitionGroup', $ns)
-          foreach ($g in $idgs) {
-            $cond = $g.GetAttribute('Condition')
-            if (-not $cond) { continue }
-            if ($cond -match 'x64') {
-              if ($g.ClCompile.AdditionalIncludeDirectories) {
-                $g.ClCompile.AdditionalIncludeDirectories = '$(VCPKG_ROOT)\installed\x64-windows-static\include;.;%(AdditionalIncludeDirectories)'
-              }
-              if ($g.Link -and $g.Link.AdditionalLibraryDirectories) {
-                $g.Link.AdditionalLibraryDirectories = '$(VCPKG_ROOT)\installed\x64-windows-static\lib;%(AdditionalLibraryDirectories)'
-              }
-              if ($g.ClCompile.Optimization) {
-                if ($g.ClCompile.Optimization -eq 'MaxSpeedHighLevel') {
-                  $g.ClCompile.Optimization = 'MaxSpeed'
-                }
-              }
-              if ($g.ClCompile.PreprocessorDefinitions) {
-                $defs = ($g.ClCompile.PreprocessorDefinitions | Out-String).Trim()
-                if ($defs) {
-                  $parts = $defs -split ';' | Where-Object { $_ -and $_ -ne 'H5_BUILT_AS_DYNAMIC_LIB' }
-                  $g.ClCompile.PreprocessorDefinitions = ($parts -join ';')
-                }
-              }
-            }
-          }
-          $xml.Save($proj)
 
       - name: Build (OpenMP, Windows)
         shell: pwsh
         env:
           INCLUDE: ${{ env.VCPKG_ROOT }}\installed\x64-windows-static\include;${{ env.INCLUDE }}
-          LIB: ${{ env.VCPKG_ROOT }}\installed\x64-windows-static\lib;${{ env.LIB }}
+          LIB: ${{ env.VCPKG_ROOT }}\installed\x64-windows-static\lib;${{ env.VCPKG_ROOT }}\installed\x64-windows-static\lib\manual-link;${{ env.LIB }}
         run: |
           & msbuild .\repos\kspaceFirstOrder-openmp-windows\kspaceFirstOrder-OMP.vcxproj `
               /p:Configuration=Release /p:Platform=x64 /m
