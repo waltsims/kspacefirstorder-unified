@@ -65,7 +65,7 @@ jobs:
           echo "FFTW libs:"; ldconfig -p | grep -i fftw || true
           echo "HDF5 libs:"; ldconfig -p | grep -i hdf5 || true
 
-linux-cuda:
+  linux-cuda:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
