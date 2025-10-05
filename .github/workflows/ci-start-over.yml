@@ -300,7 +300,7 @@ jobs:
         shell: pwsh
         env:
           INCLUDE: ${{ env.VCPKG_ROOT }}\installed\x64-windows-static\include;${{ env.INCLUDE }}
-          LIB: ${{ env.VCPKG_ROOT }}\installed\x64-windows-static\lib;${{ env.LIB }}
+          LIB: ${{ env.VCPKG_ROOT }}\installed\x64-windows-static\lib;${{ env.VCPKG_ROOT }}\installed\x64-windows-static\lib\manual-link;${{ env.LIB }}
         run: |
           & msbuild .\repos\kspaceFirstOrder-openmp-windows\kspaceFirstOrder-OMP.vcxproj `
               /p:Configuration=Release /p:Platform=x64 /m
