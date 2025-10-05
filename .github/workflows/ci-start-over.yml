@@ -256,6 +256,7 @@ jobs:
           & "$vcpkgRoot\bootstrap-vcpkg.bat"
           & "$vcpkgRoot\vcpkg.exe" install `
             hdf5[szip]:x64-windows-static `
+            libaec:x64-windows-static `
             zlib:x64-windows-static `
             fftw3[openmp]:x64-windows-static
           echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
