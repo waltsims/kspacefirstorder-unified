@@ -261,6 +261,7 @@ jobs:
           echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Patch project for static linking (HDF5 define + vcpkg paths)
+        if: false
         shell: pwsh
         run: |
           $proj = ".\repos\kspaceFirstOrder-openmp-windows\kspaceFirstOrder-OMP.vcxproj"
