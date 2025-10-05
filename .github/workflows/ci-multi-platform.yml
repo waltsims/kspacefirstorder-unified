@@ -209,6 +209,25 @@ jobs:
           non-cuda-sub-packages: '[]'
           log-file-suffix: log.txt
 
+      - name: Register CUDA MSBuild customizations
+        shell: pwsh
+        run: |
+          if (-not $env:CUDA_PATH) {
+            throw "CUDA_PATH is not set after toolkit installation"
+          }
+          if (-not $env:VCTargetsPath) {
+            throw "VCTargetsPath is not set"
+          }
+          $src = Join-Path $env:CUDA_PATH 'extras\visual_studio_integration\MSBuildExtensions'
+          $dest = Join-Path $env:VCTargetsPath 'BuildCustomizations'
+          Write-Host "Copying CUDA build customizations from $src to $dest"
+          if (-not (Test-Path $src)) {
+            throw "Expected MSBuildExtensions directory not found at $src"
+          }
+          New-Item -ItemType Directory -Path $dest -Force | Out-Null
+          Copy-Item -Path (Join-Path $src 'CUDA*.props') -Destination $dest -Force
+          Copy-Item -Path (Join-Path $src 'CUDA*.targets') -Destination $dest -Force
+
       - name: Install vcpkg and dependencies (HDF5 + zlib)
         shell: pwsh
         run: |
