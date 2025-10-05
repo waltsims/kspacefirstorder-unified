@@ -11,7 +11,11 @@ if (-not $VcpkgRoot) {
 }
 
 Write-Host "Bootstrapping vcpkg at: $VcpkgRoot"
+Write-Host "Bootstrapping vcpkg at: $VcpkgRoot"
 & "$VcpkgRoot\bootstrap-vcpkg.bat" -disableMetrics
+if ($LASTEXITCODE -ne 0) {
+  throw "vcpkg bootstrap failed with exit code $LASTEXITCODE"
+}
 
 Write-Host "Installing manifest dependencies (triplet autodetected by vcpkg)"
 & "$VcpkgRoot\vcpkg.exe" install
