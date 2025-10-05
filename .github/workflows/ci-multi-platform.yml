@@ -219,6 +219,11 @@ jobs:
       - name: Register CUDA MSBuild customizations
         shell: pwsh
         run: |
+          $vsPath = & "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -property installationPath
+          if (-not $vsPath) {
+            throw "Failed to locate Visual Studio installation"
+          }
+          & "$vsPath\Common7\Tools\VsDevCmd.bat" -no_logo -arch=amd64 -host_arch=amd64 | Out-Null
           if (-not $env:CUDA_PATH) {
             throw "CUDA_PATH is not set after toolkit installation"
           }
