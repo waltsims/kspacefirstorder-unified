@@ -228,7 +228,11 @@ jobs:
             throw "CUDA_PATH is not set after toolkit installation"
           }
           if (-not $env:VCTargetsPath) {
-            throw "VCTargetsPath is not set"
+            $vcTargets = Join-Path $vsPath 'MSBuild/Microsoft/VC/v170'
+            if (-not (Test-Path $vcTargets)) {
+              throw "Unable to determine VCTargetsPath under $vsPath"
+            }
+            $env:VCTargetsPath = $vcTargets
           }
           $src = Join-Path $env:CUDA_PATH 'extras\visual_studio_integration\MSBuildExtensions'
           $dest = Join-Path $env:VCTargetsPath 'BuildCustomizations'
