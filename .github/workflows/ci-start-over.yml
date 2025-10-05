@@ -262,15 +262,15 @@ jobs:
           echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
           $manual = Join-Path $vcpkgRoot "installed\x64-windows-static\lib\manual-link"
           $primary = Join-Path $vcpkgRoot "installed\x64-windows-static\lib"
-          $candidates = @('libaec.lib','aec.lib','szip.lib')
+          $candidates = @('aec-static.lib','szip-static.lib','libaec.lib','aec.lib','szip.lib')
           $libName = $null
           foreach ($candidate in $candidates) {
             if (Test-Path (Join-Path $manual $candidate)) { $libName = $candidate; break }
             if (Test-Path (Join-Path $primary $candidate)) { $libName = $candidate; break }
           }
           if (-not $libName) {
-            Write-Warning "Unable to locate libaec library; defaulting to libaec.lib"
-            $libName = 'libaec.lib'
+            Write-Warning "Unable to locate libaec/szip library; defaulting to aec-static.lib"
+            $libName = 'aec-static.lib'
           }
           echo "LIBAEC_LIB=$libName" | Out-File -FilePath $env:GITHUB_ENV -Append
 
