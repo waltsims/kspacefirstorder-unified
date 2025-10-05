@@ -84,6 +84,12 @@ jobs:
             build-essential pkg-config \
             gcc-12 g++-12 \
             libhdf5-dev zlib1g-dev libfftw3-dev
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 120
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 120
+          sudo update-alternatives --set gcc /usr/bin/gcc-12
+          sudo update-alternatives --set g++ /usr/bin/g++-12
+          gcc --version
+          g++ --version
 
       - name: Install CUDA Toolkit (Linux)
         uses: N-Storm/cuda-toolkit@v0.2.27m
@@ -93,6 +99,7 @@ jobs:
           method: local
           linux-local-args: '["--toolkit"]'
           use-local-cache: false
+          log-file-suffix: ${{ matrix.cuda-version }}.log.txt
 
       - name: Build (CUDA, Linux)
         run: |
@@ -207,7 +214,7 @@ jobs:
           use-local-cache: false
           sub-packages: '[]'
           non-cuda-sub-packages: '[]'
-          log-file-suffix: log.txt
+          log-file-suffix: ${{ matrix.cuda-version }}.log.txt
 
       - name: Register CUDA MSBuild customizations
         shell: pwsh
