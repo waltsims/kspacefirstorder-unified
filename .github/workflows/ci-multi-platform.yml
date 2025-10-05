@@ -91,11 +91,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential pkg-config \
+            gcc-12 g++-12 \
             libhdf5-dev zlib1g-dev libfftw3-dev
 
       - name: Build (CUDA, Linux)
         run: |
           set -euxo pipefail
+          export CC=/usr/bin/gcc-12 CXX=/usr/bin/g++-12 CUDAHOSTCXX=/usr/bin/g++-12
           cd repos/kspaceFirstOrder-cuda-linux
           # Try a straight build first (as done locally)
           if make -j"$(nproc)" all \
