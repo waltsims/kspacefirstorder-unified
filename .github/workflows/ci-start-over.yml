@@ -262,17 +262,27 @@ jobs:
           echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
           $manual = Join-Path $vcpkgRoot "installed\x64-windows-static\lib\manual-link"
           $primary = Join-Path $vcpkgRoot "installed\x64-windows-static\lib"
-          $candidates = @('aec-static.lib','szip-static.lib','libaec.lib','aec.lib','szip.lib')
-          $libName = $null
-          foreach ($candidate in $candidates) {
-            if (Test-Path (Join-Path $manual $candidate)) { $libName = $candidate; break }
-            if (Test-Path (Join-Path $primary $candidate)) { $libName = $candidate; break }
+
+          function Resolve-LibraryName {
+            param(
+              [string[]]$Candidates,
+              [string]$Default
+            )
+            foreach ($candidate in $Candidates) {
+              if (Test-Path (Join-Path $manual $candidate)) { return $candidate }
+              if (Test-Path (Join-Path $primary $candidate)) { return $candidate }
+            }
+            Write-Warning "Unable to locate ${Candidates[0]} variants; defaulting to $Default"
+            return $Default
           }
-          if (-not $libName) {
-            Write-Warning "Unable to locate libaec/szip library; defaulting to aec-static.lib"
-            $libName = 'aec-static.lib'
-          }
-          echo "LIBAEC_LIB=$libName" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+          $libaec = Resolve-LibraryName -Candidates @('aec-static.lib','szip-static.lib','libaec.lib','aec.lib','szip.lib') -Default 'aec-static.lib'
+          echo "LIBAEC_LIB=$libaec" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+          $hdf5Lib   = Resolve-LibraryName -Candidates @('hdf5-static.lib','libhdf5.lib','hdf5.lib') -Default 'hdf5-static.lib'
+          $hdf5HlLib = Resolve-LibraryName -Candidates @('hdf5_hl-static.lib','libhdf5_hl.lib','hdf5_hl.lib') -Default 'hdf5_hl-static.lib'
+          echo "HDF5_LIB=$hdf5Lib" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "HDF5_HL_LIB=$hdf5HlLib" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Build (OpenMP, Windows)
         shell: pwsh
