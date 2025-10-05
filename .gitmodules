@@ -13,6 +13,7 @@
 	path = repos/kspaceFirstOrder-openmp-darwin
 	url = https://github.com/waltsims/k-wave-omp-darwin.git
 	branch = main
+	shallow = true
 [submodule "repos/kspaceFirstOrder-cuda-linux"]
 	path = repos/kspaceFirstOrder-cuda-linux
 	url = https://github.com/waltsims/kspaceFirstOrder-CUDA-linux
