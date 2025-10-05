@@ -70,7 +70,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cuda-version: ['11.8.0', '12.2.0', '13.0.0']
+        cuda-version: ['12.2.0', '13.0.0']
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v4
@@ -194,7 +194,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cuda-version: ['11.8.0', '12.2.0', '13.0.0']
+        cuda-version: ['12.2.0', '13.0.0']
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v4
