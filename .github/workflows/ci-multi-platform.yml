@@ -97,7 +97,7 @@ jobs:
         uses: N-Storm/cuda-toolkit@v0.2.27m
         with:
           cuda: ${{ matrix.cuda-version }}
-          use-github-cache: false
+          use-github-cache: true
           method: local
           linux-local-args: '["--toolkit"]'
           use-local-cache: false
@@ -212,7 +212,7 @@ jobs:
         uses: N-Storm/cuda-toolkit@v0.2.27m
         with:
           cuda: ${{ matrix.cuda-version }}
-          use-github-cache: false
+          use-github-cache: true
           method: local
           linux-local-args: '["--toolkit"]'
           use-local-cache: false
