@@ -148,23 +148,33 @@ jobs:
           submodules: true
           fetch-depth: 0
 
-      - name: Install dependencies (Homebrew)
+      - name: Install dependencies (vcpkg)
         run: |
-          brew update
-          brew install hdf5 fftw zlib libomp
+          set -euxo pipefail
+          VCPKG_ROOT="$RUNNER_TEMP/vcpkg"
+          git clone --depth 1 https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+          "$VCPKG_ROOT/vcpkg" install \
+            hdf5[szip,hl]:arm64-osx \
+            fftw3[float,openmp]:arm64-osx \
+            zlib:arm64-osx \
+            libomp:arm64-osx
+          {
+            echo "VCPKG_ROOT=$VCPKG_ROOT"
+            echo "VCPKG_DEFAULT_TRIPLET=arm64-osx"
+            echo "CMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+          } >> "$GITHUB_ENV"
 
       - name: Configure (OpenMP, macOS)
         run: |
           set -euxo pipefail
           SRC=repos/kspaceFirstOrder-openmp-darwin
           BUILD=build/openmp-darwin
-          H5=$(brew --prefix hdf5)
-          FF=$(brew --prefix fftw)
-          ZL=$(brew --prefix zlib)
-          LO=$(brew --prefix libomp)
           cmake -S "$SRC" -B "$BUILD" \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$H5;$FF;$ZL;$LO"
+            -DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN_FILE}" \
+            -DVCPKG_TARGET_TRIPLET="${VCPKG_DEFAULT_TRIPLET}" \
+            -DOpenMP_ROOT="${VCPKG_ROOT}/installed/${VCPKG_DEFAULT_TRIPLET}"
 
       - name: Build (OpenMP, macOS)
         run: |
@@ -187,9 +197,10 @@ jobs:
       - name: Build diagnostics (macOS)
         if: failure()
         run: |
-          echo "Brew prefix:"; brew --prefix
-          echo "libomp:"; ls -la $(brew --prefix libomp)/lib || true
-          echo "fftw libs:"; ls -la $(brew --prefix fftw)/lib || true
+          echo "VCPKG root: $VCPKG_ROOT"
+          echo "Installed triplet: $VCPKG_DEFAULT_TRIPLET"
+          ls -la "$VCPKG_ROOT/installed/$VCPKG_DEFAULT_TRIPLET/lib" || true
+          ls -la "$VCPKG_ROOT/installed/$VCPKG_DEFAULT_TRIPLET/lib/manual-link" || true
 
   windows-cuda:
     runs-on: windows-latest
