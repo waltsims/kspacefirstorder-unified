@@ -73,10 +73,11 @@
 
 ## 4. Makefile Features → CMake Mapping (Work in Progress)
 - **Compiler/flags**: Host ISA/optimization (`CPU_ARCH`, `CPU_OPT`, fast-math) mapped via `KSPACE_CPU_ARCH` and `KSPACE_ENABLE_FAST_MATH`; device uses `--restrict`, `--device-c`, and inherited host flags.
-- **CUDA architectures**: Makefile `CUDA_ARCH` replicated via default `CMAKE_CUDA_ARCHITECTURES` (override with `KSPACE_CUDA_ARCH_LIST` if needed).
+- **CUDA architectures**: Default covers modern toolkits (`75+`); override via `KSPACE_CUDA_ARCH_LIST` to target legacy GPUs.
 - **SetupCUDA integration**: `cmake/SetupCUDA.cmake` (from NVIDIA) normalizes architecture lists and enables CUDA language before target creation.
 - **Git hash define**: `GIT_HASH` replaced with cache variable `KSPACE_GIT_HASH` -> compile definition `__KWAVE_GIT_HASH__`.
-- **Dependencies**: Manual include/lib paths swapped for `find_package` calls: `CUDAToolkit`, `HDF5`, `ZLIB`, optional `SZIP`, and OpenMP when enabled.
+- **Dependencies**: Manual include/lib paths swapped for `find_package` calls: `CUDAToolkit`, `HDF5`, `ZLIB`, optional `SZIP`, and OpenMP when enabled (require official `hdf5::hdf5_hl` target).
 - **Linking semantics**: Currently defaults to SEMI (dynamic CUDA, static HDF5) behaviour through imported targets; explicit STATIC/DYNAMIC switches still TODO.
 - **Ancillary sources**: Linux build omits `GetoptWin64` as in Makefile; `.cu`/`.cpp` lists mirror `DEPENDENCIES`.
 - **Rpath handling**: Makefile `-Xlinker -rpath` intentionally deferred; add once install/runtime layout is defined.
+- **cuFFT error handling**: Conditional maps for CUDA 13 vs earlier toolkits keep compilation portable.
