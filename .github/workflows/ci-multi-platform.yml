@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v5
         with:
           submodules: true
           fetch-depth: 0
@@ -21,32 +21,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential cmake pkg-config \
-            libhdf5-dev libfftw3-dev
+            libhdf5-dev libfftw3-dev libfftw3-omp-dev
+      - name: Configure (OpenMP, Linux)
+        run: |
+          set -euxo pipefail
+          cmake -S repos/kspaceFirstOrder-openmp-linux -B build/openmp-linux \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DHDF5_ROOT=/usr/lib/x86_64-linux-gnu/hdf5/serial \
+            -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial;/usr"
       - name: Build (OpenMP, Linux)
         run: |
           set -euxo pipefail
-          cd repos/kspaceFirstOrder-openmp-linux
-          # Try a clean build exactly like the working local command
-          if make -j"$(nproc)" all \
-              LINKING=DYNAMIC COMPILER=GNU \
-              EBROOTHDF5=/usr/lib/x86_64-linux-gnu/hdf5/serial \
-              EBROOTZLIB=/usr EBROOTFFTW=/usr EBROOTSZIP=/usr \
-              LIB_PATHS='-L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib -L/usr/lib/x86_64-linux-gnu'
-          then
-            echo "Built successfully without adjustments."
-          else
-            echo "Falling back: wrapper to set space recipe prefix before parsing"
-            printf '.RECIPEPREFIX := \x20\ninclude Makefile\n' > Makefile.ci
-            make -f Makefile.ci -j"$(nproc)" all \
-                LINKING=DYNAMIC COMPILER=GNU \
-                EBROOTHDF5=/usr/lib/x86_64-linux-gnu/hdf5/serial \
-                EBROOTZLIB=/usr EBROOTFFTW=/usr EBROOTSZIP=/usr \
-                LIB_PATHS='-L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib -L/usr/lib/x86_64-linux-gnu'
-          fi
+          cmake --build build/openmp-linux --parallel "$(nproc)"
       - name: Smoke test (Linux)
         run: |
           set -euxo pipefail
-          cd repos/kspaceFirstOrder-openmp-linux
+          cd build/openmp-linux
           chmod +x ./kspaceFirstOrder-OMP || true
           LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial:${LD_LIBRARY_PATH:-}" ./kspaceFirstOrder-OMP --help | head -n 40 || true
 
@@ -55,13 +45,21 @@ jobs:
         with:
           name: kspaceFirstOrder-openmp-linux-ubuntu-latest
           path: |
-            repos/kspaceFirstOrder-openmp-linux/kspaceFirstOrder-*
+            build/openmp-linux/kspaceFirstOrder-*
           if-no-files-found: error
 
       - name: Build diagnostics
         if: failure()
         run: |
           echo "Build failed for OpenMP (Linux)"
+          if [ -f build/openmp-linux/CMakeFiles/CMakeError.log ]; then
+            echo "----- CMakeError.log -----"
+            cat build/openmp-linux/CMakeFiles/CMakeError.log
+          fi
+          if [ -f build/openmp-linux/CMakeFiles/CMakeOutput.log ]; then
+            echo "----- CMakeOutput.log -----"
+            cat build/openmp-linux/CMakeFiles/CMakeOutput.log
+          fi
           echo "CPU info:"; lscpu || true
           echo "FFTW libs:"; ldconfig -p | grep -i fftw || true
           echo "HDF5 libs:"; ldconfig -p | grep -i hdf5 || true
@@ -74,7 +72,7 @@ jobs:
         cuda-version: ['12.2.0', '13.0.0']
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v5
         with:
           submodules: true
           fetch-depth: 0
@@ -135,7 +133,7 @@ jobs:
     runs-on: macos-14
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v5
         with:
           submodules: true
           fetch-depth: 0
@@ -190,7 +188,7 @@ jobs:
         cuda-version: ['13.0.0']
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v5
         with:
           submodules: true
           fetch-depth: 0
@@ -294,7 +292,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v5
         with:
           submodules: true
           fetch-depth: 0
