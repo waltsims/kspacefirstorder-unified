@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.6
         with:
           submodules: true
           fetch-depth: 0
@@ -51,7 +51,7 @@ jobs:
           LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial:${LD_LIBRARY_PATH:-}" ./kspaceFirstOrder-OMP --help | head -n 40 || true
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.1
         with:
           name: kspaceFirstOrder-openmp-linux-ubuntu-latest
           path: |
@@ -74,7 +74,7 @@ jobs:
         cuda-version: ['12.2.0', '13.0.0']
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.6
         with:
           submodules: true
           fetch-depth: 0
@@ -119,7 +119,7 @@ jobs:
           cmake --build build/cuda-linux --parallel "$(nproc)"
 
       - name: Upload artifacts (CUDA Linux)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.1
         with:
           name: kspaceFirstOrder-cuda-linux-${{ matrix.cuda-version }}
           path: |
@@ -135,7 +135,7 @@ jobs:
     runs-on: macos-14
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.6
         with:
           submodules: true
           fetch-depth: 0
@@ -168,7 +168,7 @@ jobs:
           ./build/openmp-darwin/kspaceFirstOrder-OMP --help
 
       - name: Upload artifacts (macOS)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.1
         with:
           name: kspaceFirstOrder-openmp-darwin-macos-latest
           path: |
@@ -190,13 +190,13 @@ jobs:
         cuda-version: ['13.0.0']
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.6
         with:
           submodules: true
           fetch-depth: 0
 
       - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v2.0.0
 
       - name: Install CUDA Toolkit (Windows)
         uses: N-Storm/cuda-toolkit@v0.2.27m
@@ -275,7 +275,7 @@ jobs:
 
       - name: Upload artifacts (CUDA Windows)
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.1
         with:
           name: kspaceFirstOrder-cuda-windows-${{ matrix.cuda-version }}
           path: |
@@ -294,13 +294,13 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.6
         with:
           submodules: true
           fetch-depth: 0
 
       - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v2.0.0
 
       - name: Install vcpkg and deps (static + OpenMP)
         shell: pwsh
