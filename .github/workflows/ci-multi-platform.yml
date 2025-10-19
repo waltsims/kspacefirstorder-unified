@@ -148,33 +148,22 @@ jobs:
           submodules: true
           fetch-depth: 0
 
-      - name: Install dependencies (vcpkg)
+      - name: Install dependencies (Homebrew)
         run: |
           set -euxo pipefail
-          VCPKG_ROOT="$RUNNER_TEMP/vcpkg"
-          git clone --depth 1 https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
-          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
-          "$VCPKG_ROOT/vcpkg" install \
-            hdf5[szip,hl]:arm64-osx \
-            fftw3[float,openmp]:arm64-osx \
-            zlib:arm64-osx \
-            libomp:arm64-osx
-          {
-            echo "VCPKG_ROOT=$VCPKG_ROOT"
-            echo "VCPKG_DEFAULT_TRIPLET=arm64-osx"
-            echo "CMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
-          } >> "$GITHUB_ENV"
+          export HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_ANALYTICS=1
+          brew install cmake hdf5 fftw libomp zlib
+          brew link --overwrite --force libomp
 
       - name: Configure (OpenMP, macOS)
         run: |
           set -euxo pipefail
           SRC=repos/kspaceFirstOrder-openmp-darwin
           BUILD=build/openmp-darwin
+          BREW_PREFIX="$(brew --prefix)"
           cmake -S "$SRC" -B "$BUILD" \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN_FILE}" \
-            -DVCPKG_TARGET_TRIPLET="${VCPKG_DEFAULT_TRIPLET}" \
-            -DOpenMP_ROOT="${VCPKG_ROOT}/installed/${VCPKG_DEFAULT_TRIPLET}"
+            -DHOMEBREW_PREFIX="$BREW_PREFIX"
 
       - name: Build (OpenMP, macOS)
         run: |
@@ -197,10 +186,9 @@ jobs:
       - name: Build diagnostics (macOS)
         if: failure()
         run: |
-          echo "VCPKG root: $VCPKG_ROOT"
-          echo "Installed triplet: $VCPKG_DEFAULT_TRIPLET"
-          ls -la "$VCPKG_ROOT/installed/$VCPKG_DEFAULT_TRIPLET/lib" || true
-          ls -la "$VCPKG_ROOT/installed/$VCPKG_DEFAULT_TRIPLET/lib/manual-link" || true
+          brew --prefix
+          brew list --versions hdf5 fftw libomp zlib || true
+          cmake --version
 
   windows-cuda:
     runs-on: windows-latest
