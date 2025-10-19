@@ -1,6 +1,6 @@
 # kspaceFirstOrder - Unified C++ Implementation
 
-[![CI](https://github.com/waltsims/kspaceFirstOrder-unified/actions/workflows/ci.yml/badge.svg)](https://github.com/waltsims/kspaceFirstOrder-unified/actions/workflows/ci.yml)
+[![CI](https://github.com/waltsims/kspaceFirstOrder-unified/actions/workflows/ci-multi-platform.yml/badge.svg)](https://github.com/waltsims/kspaceFirstOrder-unified/actions/workflows/ci-multi-platform.yml)
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0.en.html)
 
 ## Overview

@@ -83,7 +83,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential pkg-config \
+            build-essential pkg-config cmake \
             gcc-12 g++-12 \
             libhdf5-dev zlib1g-dev libfftw3-dev
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 120
@@ -103,35 +103,27 @@ jobs:
           use-local-cache: false
           log-file-suffix: ${{ matrix.cuda-version }}.log.txt
 
-      - name: Build (CUDA, Linux)
+      - name: Configure (CUDA, Linux)
         run: |
           set -euxo pipefail
           export CC=/usr/bin/gcc-12 CXX=/usr/bin/g++-12 CUDAHOSTCXX=/usr/bin/g++-12
-          cd repos/kspaceFirstOrder-cuda-linux
-          # Try a straight build first (as done locally)
-          if make -j"$(nproc)" all \
-               LINKING=DYNAMIC COMPILER=GNU \
-               CUDA_HOME=/usr/local/cuda \
-               EBROOTHDF5=/usr/lib/x86_64-linux-gnu/hdf5/serial \
-               EBROOTZLIB=/usr EBROOTFFTW=/usr EBROOTSZIP=/usr
-          then
-            echo "CUDA build succeeded."
-          else
-            echo "Falling back: set space recipe prefix via wrapper"
-            printf '.RECIPEPREFIX := \x20\ninclude Makefile\n' > Makefile.ci
-            make -f Makefile.ci -j"$(nproc)" all \
-                 LINKING=DYNAMIC COMPILER=GNU \
-                 CUDA_HOME=/usr/local/cuda \
-                 EBROOTHDF5=/usr/lib/x86_64-linux-gnu/hdf5/serial \
-                 EBROOTZLIB=/usr EBROOTFFTW=/usr EBROOTSZIP=/usr
-          fi
+          cmake -S repos/kspaceFirstOrder-cuda-linux -B build/cuda-linux \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DKSPACE_CPU_ARCH=native \
+            -DHDF5_ROOT=/usr/lib/x86_64-linux-gnu/hdf5/serial \
+            -DCUDAToolkit_ROOT=/usr/local/cuda
+
+      - name: Build (CUDA, Linux)
+        run: |
+          set -euxo pipefail
+          cmake --build build/cuda-linux --parallel "$(nproc)"
 
       - name: Upload artifacts (CUDA Linux)
         uses: actions/upload-artifact@v4
         with:
           name: kspaceFirstOrder-cuda-linux-${{ matrix.cuda-version }}
           path: |
-            repos/kspaceFirstOrder-cuda-linux/kspaceFirstOrder-CUDA
+            build/cuda-linux/kspaceFirstOrder-CUDA
           if-no-files-found: error
 
       - name: Build diagnostics (CUDA Linux)
