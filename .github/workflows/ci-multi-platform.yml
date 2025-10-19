@@ -253,15 +253,25 @@ jobs:
 
       # Removed legacy alias step; project links vcpkg libs directly
 
-      - name: Build (CUDA, Windows)
+      - name: Configure (CUDA, Windows)
         shell: pwsh
         env:
-          # Ensure HDF5 headers/libs are discoverable by MSBuild/Linker
-          INCLUDE: ${{ env.VCPKG_ROOT }}\installed\x64-windows\include;${{ env.INCLUDE }}
-          LIB: ${{ env.VCPKG_ROOT }}\installed\x64-windows\lib;${{ env.LIB }}
+          CMAKE_GENERATOR: "Visual Studio 17 2022"
+          CMAKE_GENERATOR_PLATFORM: x64
+          CMAKE_GENERATOR_TOOLSET: host=x64
+          VCPKG_ROOT: ${{ env.VCPKG_ROOT }}
         run: |
-          & msbuild .\repos\kspaceFirstOrder-cuda-windows\kspaceFirstOrder-CUDA.vcxproj `
-              /p:Configuration=Release /p:Platform=x64 /m
+          $env:PATH = "$env:VCPKG_ROOT;${env:PATH}"
+          cmake -S repos/kspaceFirstOrder-cuda-windows -B build/cuda-windows `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DKSPACE_CPU_ARCH=avx2 `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows
+
+      - name: Build (CUDA, Windows)
+        shell: pwsh
+        run: |
+          cmake --build build/cuda-windows --config Release -- /m
 
       - name: Upload artifacts (CUDA Windows)
         if: success()
@@ -269,7 +279,7 @@ jobs:
         with:
           name: kspaceFirstOrder-cuda-windows-${{ matrix.cuda-version }}
           path: |
-            repos/kspaceFirstOrder-cuda-windows/x64/Release/kspaceFirstOrder-CUDA.exe
+            build/cuda-windows/Release/kspaceFirstOrder-CUDA.exe
           if-no-files-found: error
 
       - name: Build diagnostics (CUDA Windows)
