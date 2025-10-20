@@ -307,6 +307,9 @@ jobs:
           }
           echo "LLVM_ROOT=$llvmRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
 
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2.0.0
+
       - name: Install vcpkg and deps (OpenMP)
         shell: pwsh
         run: |
@@ -327,21 +330,18 @@ jobs:
           LLVM_ROOT: ${{ env.LLVM_ROOT }}
         run: |
           $env:PATH = "$env:LLVM_ROOT\bin;$env:VCPKG_ROOT;${env:PATH}"
-          $env:OpenMP_LLVM_ROOT = $env:LLVM_ROOT
           cmake -S repos/kspaceFirstOrder-openmp-windows -B build/openmp-windows `
-            -G "Ninja" `
             -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_C_COMPILER=clang-cl `
-            -DCMAKE_CXX_COMPILER=clang-cl `
-            -DCMAKE_LINKER=lld-link `
+            -T ClangCL `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=x64-windows `
-            -DHDF5_USE_STATIC_LIBRARIES=OFF
+            -DHDF5_USE_STATIC_LIBRARIES=OFF `
+            -DOpenMP_LLVM_ROOT="$env:LLVM_ROOT"
 
       - name: Build (OpenMP, Windows)
         shell: pwsh
         run: |
-          cmake --build build/openmp-windows --parallel
+          cmake --build build/openmp-windows --config Release -- /m
 
       - name: Upload artifacts (OpenMP Windows)
         if: success()
@@ -349,7 +349,7 @@ jobs:
         with:
           name: kspaceFirstOrder-openmp-windows-windows-latest
           path: |
-            build/openmp-windows/kspaceFirstOrder-OMP.exe
+            build/openmp-windows/Release/kspaceFirstOrder-OMP.exe
           if-no-files-found: error
 
       - name: Build diagnostics (OpenMP Windows)
