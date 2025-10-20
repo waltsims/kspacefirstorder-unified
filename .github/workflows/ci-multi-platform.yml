@@ -317,11 +317,34 @@ jobs:
           git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
           & "$vcpkgRoot\bootstrap-vcpkg.bat"
           & "$vcpkgRoot\vcpkg.exe" install `
-            hdf5[szip]:x64-windows `
-            libaec:x64-windows `
-            zlib:x64-windows `
-            fftw3[openmp]:x64-windows
+            hdf5[szip]:x64-windows-static `
+            libaec:x64-windows-static `
+            zlib:x64-windows-static `
+            fftw3[openmp]:x64-windows-static
           echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+          $manual = Join-Path $vcpkgRoot "installed\x64-windows-static\lib\manual-link"
+          $primary = Join-Path $vcpkgRoot "installed\x64-windows-static\lib"
+
+          function Resolve-LibraryName {
+            param(
+              [string[]]$Candidates,
+              [string]$Default
+            )
+            foreach ($candidate in $Candidates) {
+              if (Test-Path (Join-Path $manual $candidate)) { return $candidate }
+              if (Test-Path (Join-Path $primary $candidate)) { return $candidate }
+            }
+            Write-Warning "Unable to locate ${Candidates[0]} variants; defaulting to $Default"
+            return $Default
+          }
+
+          $libaec = Resolve-LibraryName -Candidates @('aec-static.lib','szip-static.lib','libaec.lib','aec.lib','szip.lib') -Default 'aec-static.lib'
+          echo "LIBAEC_LIB=$libaec" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+          $hdf5Lib   = Resolve-LibraryName -Candidates @('hdf5-static.lib','libhdf5.lib','hdf5.lib') -Default 'hdf5-static.lib'
+          $hdf5HlLib = Resolve-LibraryName -Candidates @('hdf5_hl-static.lib','libhdf5_hl.lib','hdf5_hl.lib') -Default 'hdf5_hl-static.lib'
+          echo "HDF5_LIB=$hdf5Lib" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "HDF5_HL_LIB=$hdf5HlLib" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Configure (OpenMP, Windows)
         shell: pwsh
@@ -334,8 +357,8 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release `
             -T ClangCL `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
-            -DVCPKG_TARGET_TRIPLET=x64-windows `
-            -DHDF5_USE_STATIC_LIBRARIES=OFF `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static `
+            -DHDF5_USE_STATIC_LIBRARIES=ON `
             -DOpenMP_LLVM_ROOT="$env:LLVM_ROOT"
 
       - name: Build (OpenMP, Windows)
