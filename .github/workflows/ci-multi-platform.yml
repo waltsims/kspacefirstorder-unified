@@ -297,13 +297,13 @@ jobs:
           submodules: true
           fetch-depth: 0
 
-      - name: Install LLVM (Clang + OpenMP)
+      - name: Ensure LLVM (Clang + OpenMP)
         shell: pwsh
         run: |
-          choco install llvm --version=17.0.6 -y --no-progress
           $llvmRoot = "C:\Program Files\LLVM"
-          if (-not (Test-Path $llvmRoot)) {
-            throw "LLVM install not found at $llvmRoot"
+          choco upgrade llvm -y --no-progress
+          if (-not (Test-Path "$llvmRoot\bin\clang-cl.exe")) {
+            throw "clang-cl not found under $llvmRoot after LLVM installation"
           }
           echo "LLVM_ROOT=$llvmRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
 
