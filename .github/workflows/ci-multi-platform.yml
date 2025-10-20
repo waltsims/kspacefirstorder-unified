@@ -297,63 +297,51 @@ jobs:
           submodules: true
           fetch-depth: 0
 
-      - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v2.0.0
+      - name: Install LLVM (Clang + OpenMP)
+        shell: pwsh
+        run: |
+          choco install llvm --version=17.0.6 -y --no-progress
+          $llvmRoot = "C:\Program Files\LLVM"
+          if (-not (Test-Path $llvmRoot)) {
+            throw "LLVM install not found at $llvmRoot"
+          }
+          echo "LLVM_ROOT=$llvmRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Install vcpkg and deps (static + OpenMP)
+      - name: Install vcpkg and deps (OpenMP)
         shell: pwsh
         run: |
           $vcpkgRoot = "$env:RUNNER_TEMP\vcpkg"
           git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
           & "$vcpkgRoot\bootstrap-vcpkg.bat"
           & "$vcpkgRoot\vcpkg.exe" install `
-            hdf5[szip]:x64-windows-static `
-            libaec:x64-windows-static `
-            zlib:x64-windows-static `
-            fftw3[openmp]:x64-windows-static
+            hdf5[szip]:x64-windows `
+            libaec:x64-windows `
+            zlib:x64-windows `
+            fftw3[openmp]:x64-windows
           echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
-          $manual = Join-Path $vcpkgRoot "installed\x64-windows-static\lib\manual-link"
-          $primary = Join-Path $vcpkgRoot "installed\x64-windows-static\lib"
-
-          function Resolve-LibraryName {
-            param(
-              [string[]]$Candidates,
-              [string]$Default
-            )
-            foreach ($candidate in $Candidates) {
-              if (Test-Path (Join-Path $manual $candidate)) { return $candidate }
-              if (Test-Path (Join-Path $primary $candidate)) { return $candidate }
-            }
-            Write-Warning "Unable to locate ${Candidates[0]} variants; defaulting to $Default"
-            return $Default
-          }
-
-          $libaec = Resolve-LibraryName -Candidates @('aec-static.lib','szip-static.lib','libaec.lib','aec.lib','szip.lib') -Default 'aec-static.lib'
-          echo "LIBAEC_LIB=$libaec" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-          $hdf5Lib   = Resolve-LibraryName -Candidates @('hdf5-static.lib','libhdf5.lib','hdf5.lib') -Default 'hdf5-static.lib'
-          $hdf5HlLib = Resolve-LibraryName -Candidates @('hdf5_hl-static.lib','libhdf5_hl.lib','hdf5_hl.lib') -Default 'hdf5_hl-static.lib'
-          echo "HDF5_LIB=$hdf5Lib" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "HDF5_HL_LIB=$hdf5HlLib" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Configure (OpenMP, Windows)
         shell: pwsh
         env:
-          CMAKE_GENERATOR: "Visual Studio 17 2022"
-          CMAKE_GENERATOR_PLATFORM: x64
-          CMAKE_GENERATOR_TOOLSET: host=x64
           VCPKG_ROOT: ${{ env.VCPKG_ROOT }}
+          LLVM_ROOT: ${{ env.LLVM_ROOT }}
         run: |
+          $env:PATH = "$env:LLVM_ROOT\bin;$env:VCPKG_ROOT;${env:PATH}"
+          $env:OpenMP_LLVM_ROOT = $env:LLVM_ROOT
           cmake -S repos/kspaceFirstOrder-openmp-windows -B build/openmp-windows `
+            -G "Ninja" `
             -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_C_COMPILER=clang-cl `
+            -DCMAKE_CXX_COMPILER=clang-cl `
+            -DCMAKE_LINKER=lld-link `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
-            -DVCPKG_TARGET_TRIPLET=x64-windows-static `
-            -DHDF5_USE_STATIC_LIBRARIES=ON
+            -DVCPKG_TARGET_TRIPLET=x64-windows `
+            -DHDF5_USE_STATIC_LIBRARIES=OFF
 
       - name: Build (OpenMP, Windows)
         shell: pwsh
         run: |
-          cmake --build build/openmp-windows --config Release -- /m
+          cmake --build build/openmp-windows --parallel
 
       - name: Upload artifacts (OpenMP Windows)
         if: success()
@@ -361,13 +349,14 @@ jobs:
         with:
           name: kspaceFirstOrder-openmp-windows-windows-latest
           path: |
-            build/openmp-windows/Release/kspaceFirstOrder-OMP.exe
+            build/openmp-windows/kspaceFirstOrder-OMP.exe
           if-no-files-found: error
 
       - name: Build diagnostics (OpenMP Windows)
         if: failure()
         shell: pwsh
         run: |
+          clang-cl --version || $true
           if (Test-Path 'build/openmp-windows/CMakeFiles/CMakeError.log') {
             Write-Host '----- CMakeError.log -----'
             Get-Content 'build/openmp-windows/CMakeFiles/CMakeError.log'
