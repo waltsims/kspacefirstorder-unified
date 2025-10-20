@@ -21,7 +21,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential cmake pkg-config \
-            libhdf5-dev libfftw3-dev libfftw3-omp-dev
+            libhdf5-dev libfftw3-dev
       - name: Configure (OpenMP, Linux)
         run: |
           set -euxo pipefail
