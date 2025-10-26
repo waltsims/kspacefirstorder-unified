@@ -148,7 +148,6 @@ set(HDR
   Parameters/CommandLineParameters.h
   Parameters/Parameters.h
   Utils/DimensionSizes.h
-  Utils/MatrixNames.h
   Utils/TimeMeasure.h
 )
 
