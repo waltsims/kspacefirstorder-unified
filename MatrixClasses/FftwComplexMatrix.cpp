@@ -329,11 +329,12 @@ void FftwComplexMatrix::createR2CFftPlan1DZ(RealMatrix& inMatrix)
     dims[0].n  = nz;
     dims[0].os = nx * ny;
 
-    // GNU Compiler + FFTW
+    int        howManyRank = 0;
+    fftw_iodim howManyDims[2];
+
     #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
       // How FFTs we need to perform - Y * X
-      const int  howManyRank = 2;
-      fftw_iodim howManyDims[2];
+      howManyRank = 2;
 
       // y dim
       howManyDims[0].is = nx;
@@ -344,17 +345,27 @@ void FftwComplexMatrix::createR2CFftPlan1DZ(RealMatrix& inMatrix)
       howManyDims[1].is = 1;
       howManyDims[1].n  = nx;
       howManyDims[1].os = 1;
-    #endif
-
-    // Intel Compiler + MKL does it slab by slab
-    #if (defined(__INTEL_COMPILER))
-      const int  howManyRank = 1;
-      fftw_iodim howManyDims[1];
+    #elif (defined(__INTEL_COMPILER))
+      // Intel Compiler + MKL does it slab by slab
+      howManyRank = 1;
 
       // x dim
       howManyDims[0].is = 1;
       howManyDims[0].n  = nx;
       howManyDims[0].os = 1;
+    #else
+      // Default fallback for other compilers (e.g. MSVC) mirrors the GNU path.
+      howManyRank = 2;
+
+      // y dim
+      howManyDims[0].is = nx;
+      howManyDims[0].n  = ny;
+      howManyDims[0].os = nx;
+
+      // x dim
+      howManyDims[1].is = 1;
+      howManyDims[1].n  = nx;
+      howManyDims[1].os = 1;
     #endif
 
     mR2CFftPlan1DZ = fftwf_plan_guru_dft_r2c(rank,                                    // 1D FFT rank
@@ -557,11 +568,12 @@ void FftwComplexMatrix::createC2RFftPlan1DZ(RealMatrix& outMatrix)
     dims[0].n  = nz;
     dims[0].os = nx * ny;
 
-    // GNU Compiler + FFTW
+    int        howManyRank = 0;
+    fftw_iodim howManyDims[2];
+
     #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
       // How FFTs we need to perform - Y * X
-      const int  howManyRank = 2;
-      fftw_iodim howManyDims[2];
+      howManyRank = 2;
 
       // y dim
       howManyDims[0].is = nx;
@@ -572,17 +584,27 @@ void FftwComplexMatrix::createC2RFftPlan1DZ(RealMatrix& outMatrix)
       howManyDims[1].is = 1;
       howManyDims[1].n  = nx;
       howManyDims[1].os = 1;
-    #endif
-
-    // Intel Compiler + MKL does it slab by slab
-    #if (defined(__INTEL_COMPILER))
-      const int howManyRank = 1;
-      fftw_iodim howManyDims[1];
+    #elif (defined(__INTEL_COMPILER))
+      // Intel Compiler + MKL does it slab by slab
+      howManyRank = 1;
 
       // x dim
       howManyDims[0].is = 1;
       howManyDims[0].n  = nx;
       howManyDims[0].os = 1;
+    #else
+      // Default fallback mirrors the GNU configuration.
+      howManyRank = 2;
+
+      // y dim
+      howManyDims[0].is = nx;
+      howManyDims[0].n  = ny;
+      howManyDims[0].os = nx;
+
+      // x dim
+      howManyDims[1].is = 1;
+      howManyDims[1].n  = nx;
+      howManyDims[1].os = 1;
     #endif
 
     mC2RFftPlan1DZ = fftwf_plan_guru_dft_c2r(rank,                                    // 1D FFT rank
