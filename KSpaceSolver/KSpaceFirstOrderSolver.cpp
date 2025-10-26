@@ -2404,8 +2404,7 @@ void KSpaceFirstOrderSolver::computePressureTermsLinearPowerLaw(RealMatrix& dens
     pDensitySum[i] = (simulationDimension == SD::k3D) ? (rhoX[i] + rhoY[i] + rhoZ[i]) : (rhoX[i] + rhoY[i]);
   }
 
-  #pragma omp parallel for schedule(static) \
-          aligned (duxdx, duydy, duzdz, rho0Matrix, pVelocityGradientSum : kDataAlignment)
+  #pragma omp parallel for schedule(static)
   for (SignedIndex i = 0; i < toSigned(size); i++)
   {
     const float rho0  = (rho0ScalarFlag) ? rho0Scalar : rho0Matrix[i];
