@@ -11,7 +11,7 @@
     {
       "name": "fftw3",
       "default-features": true,
-      "features": ["threads"]
+      "features": ["float", "threads"]
     },
     "zlib"
   ]
