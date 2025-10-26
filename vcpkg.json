@@ -1,0 +1,11 @@
+{
+  "name": "kwave-omp",
+  "version-string": "1.3",
+  "builtin-baseline": "b7c9ab0",
+  "dependencies": [
+    { "name": "hdf5", "default-features": true, "features": ["zlib", "szip"] },
+    { "name": "fftw3", "default-features": true, "features": ["single", "threads"] },
+    "zlib",
+    "libszip"
+  ]
+}
