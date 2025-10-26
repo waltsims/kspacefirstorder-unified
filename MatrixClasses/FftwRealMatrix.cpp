@@ -196,11 +196,18 @@ void FftwRealMatrix::createPlans1DY(RealMatrix& inMatrix)
 void FftwRealMatrix::computeForwardR2RFft1DY(const TransformKind kind,
                                              RealMatrix&         inMatrix)
 {
+  bool executed = false;
+
   // GNU compiler + FFTW
   #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
     if (mOutPlaceR2RPlans1DY[kind])
     {
       fftwf_execute_r2r(mOutPlaceR2RPlans1DY[kind], inMatrix.getData(), mData);
+      executed = true;
+    }
+    else
+    {
+      throw std::runtime_error(Logger::formatMessage(kErrFmtExecuteR2RFftPlan1D, int(kind)));
     }
   #endif
 
@@ -224,8 +231,12 @@ void FftwRealMatrix::computeForwardR2RFft1DY(const TransformKind kind,
       mkl_simatcopy ('r', 't', mDimensionSizes.nx, mDimensionSizes.ny, 1.0f,
                         mData, mDimensionSizes.ny, mDimensionSizes.nx);
     }
+    else
+    {
+      throw std::runtime_error(Logger::formatMessage(kErrFmtExecuteR2RFftPlan1D, int(kind)));
+    }
   #endif
-  else
+  if (!executed)
   {
     throw std::runtime_error(Logger::formatMessage(kErrFmtExecuteR2RFftPlan1D, int(kind)));
   }
@@ -238,11 +249,18 @@ void FftwRealMatrix::computeForwardR2RFft1DY(const TransformKind kind,
 void FftwRealMatrix::computeInverseR2RFft1DY(const TransformKind kind,
                                              RealMatrix&         outMatrix)
 {
+  bool executed = false;
+
   // GNU compiler + FFTW
   #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
     if (mOutPlaceR2RPlans1DY[kind])
     {
       fftwf_execute_r2r(mOutPlaceR2RPlans1DY[kind], mData, outMatrix.getData());
+      executed = true;
+    }
+    else
+    {
+      throw std::runtime_error(Logger::formatMessage(kErrFmtExecuteR2RFftPlan1D, int(kind)));
     }
   #endif
 
@@ -266,8 +284,12 @@ void FftwRealMatrix::computeInverseR2RFft1DY(const TransformKind kind,
       mkl_somatcopy ('r', 't', mDimensionSizes.nx, mDimensionSizes.ny, 1.0f, mData,
                                mDimensionSizes.ny, outMatrix.getData(), mDimensionSizes.nx);
     }
+    else
+    {
+      throw std::runtime_error(Logger::formatMessage(kErrFmtExecuteR2RFftPlan1D, int(kind)));
+    }
   #endif
-  else
+  if (!executed)
   {
     throw std::runtime_error(Logger::formatMessage(kErrFmtExecuteR2RFftPlan1D, int(kind)));
   }
