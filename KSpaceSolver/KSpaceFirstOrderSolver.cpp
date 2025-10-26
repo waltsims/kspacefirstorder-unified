@@ -3739,7 +3739,6 @@ void KSpaceFirstOrderSolver::generateC2()
 }// generateC2
 //----------------------------------------------------------------------------------------------------------------------
 
-#pragma omp declare simd
 inline size_t KSpaceFirstOrderSolver::get1DIndex(const SignedIndex     z,
                                                  const SignedIndex     y,
                                                  const SignedIndex     x,
@@ -3753,7 +3752,6 @@ inline size_t KSpaceFirstOrderSolver::get1DIndex(const SignedIndex     z,
 }// end of get1DIndex
 //----------------------------------------------------------------------------------------------------------------------
 
-#pragma omp declare simd
 inline size_t KSpaceFirstOrderSolver::get1DIndex(const SignedIndex     y,
                                                  const SignedIndex     x,
                                                  const DimensionSizes& dimensionSizes) const
