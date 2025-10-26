@@ -188,6 +188,7 @@ set(HDR
   Parameters/Parameters.h
   Utils/DimensionSizes.h
   Utils/TimeMeasure.h
+  Utils/OmpHelpers.h
 )
 
 add_executable(kspaceFirstOrder-OMP ${SRC} ${HDR})
