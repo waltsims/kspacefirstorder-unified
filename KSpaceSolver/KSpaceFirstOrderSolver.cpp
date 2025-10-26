@@ -69,6 +69,14 @@ using OI = OutputStreamContainer::OutputStreamIdx;
 /// Signed index type for OpenMP loops.
 using SignedIndex = std::ptrdiff_t;
 
+namespace
+{
+  inline SignedIndex toSigned(const size_t value)
+  {
+    return static_cast<SignedIndex>(value);
+  }
+}
+
 //--------------------------------------------------------------------------------------------------------------------//
 //------------------------------------------------- Initialization ---------------------------------------------------//
 //--------------------------------------------------------------------------------------------------------------------//
@@ -1352,13 +1360,13 @@ void KSpaceFirstOrderSolver::computePressureGradient()
   getTempFftwX().computeR2CFftND(getRealMatrix(MI::kP));
 
   #pragma omp parallel for schedule(static) if (simulationDimension == SD::k3D)
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(reducedDimensionSizes.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(reducedDimensionSizes.nz); z++)
   {
     #pragma omp parallel for schedule(static) if (simulationDimension == SD::k2D)
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(reducedDimensionSizes.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(reducedDimensionSizes.ny); y++)
     {
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(reducedDimensionSizes.nx);  x++)
+      for (SignedIndex x = 0; x < toSigned(reducedDimensionSizes.nx);  x++)
       {
         const size_t i = get1DIndex(z, y, x, reducedDimensionSizes);
 
@@ -1408,10 +1416,10 @@ void KSpaceFirstOrderSolver::computePressureGradientAS()
   getTempFftwX().computeR2CFft1DX(getTemp1FftwRealND());
 
   #pragma omp parallel for schedule(static)
-  for (SignedIndex y = 0; y < static_cast<SignedIndex>(reducedDimensionSizes.ny); y++)
+  for (SignedIndex y = 0; y < toSigned(reducedDimensionSizes.ny); y++)
   {
    #pragma omp simd
-    for (SignedIndex x = 0; x < static_cast<SignedIndex>(reducedDimensionSizes.nx); x++)
+    for (SignedIndex x = 0; x < toSigned(reducedDimensionSizes.nx); x++)
     {
       const size_t i = get1DIndex(y, x, reducedDimensionSizes);
 
@@ -1478,13 +1486,13 @@ void KSpaceFirstOrderSolver::computeVelocityUniform()
 
   // Long loops are replicated for every dimension to save SIMD registers
   #pragma omp parallel for schedule(static) if (simulationDimension == SD::k3D)
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(dimensionSizes.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(dimensionSizes.nz); z++)
   {
     #pragma omp parallel for schedule(static) if (simulationDimension == SD::k2D)
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
     {
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
       {
         const size_t i = get1DIndex(z, y, x, dimensionSizes);
         const float dtRho0Sgx = (rho0ScalarFlag) ? dtRho0SgxScalar : dtRho0SgxMatrix[i];
@@ -1495,13 +1503,13 @@ void KSpaceFirstOrderSolver::computeVelocityUniform()
   }// z
 
   #pragma omp parallel for schedule(static) if (simulationDimension == SD::k3D)
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(dimensionSizes.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(dimensionSizes.nz); z++)
   {
     #pragma omp parallel for schedule(static) if (simulationDimension == SD::k2D)
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
     {
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
       {
         const size_t i = get1DIndex(z, y, x, dimensionSizes);
         const float dtRho0Sgy = (rho0ScalarFlag) ? dtRho0SgyScalar : dtRho0SgyMatrix[i];
@@ -1522,12 +1530,12 @@ void KSpaceFirstOrderSolver::computeVelocityUniform()
     float* uzSgz = getRealData(MI::kUzSgz);
 
     #pragma omp parallel for schedule(static)
-    for (SignedIndex z = 0; z < static_cast<SignedIndex>(dimensionSizes.nz); z++)
+    for (SignedIndex z = 0; z < toSigned(dimensionSizes.nz); z++)
     {
-      for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+      for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
       {
         #pragma omp simd
-        for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+        for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
         {
           const size_t i = get1DIndex(z, y, x, dimensionSizes);
           const float dtRho0Sgz = (rho0ScalarFlag) ? dtRho0SgzScalar : dtRho0SgzMatrix[i];
@@ -1570,13 +1578,13 @@ void KSpaceFirstOrderSolver::computeVelocityHomogeneousNonuniform()
 
   // Long loops are replicated for every dimension to save SIMD registers
   #pragma omp parallel for schedule(static) if (simulationDimension == SD::k3D)
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(dimensionSizes.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(dimensionSizes.nz); z++)
   {
     #pragma omp parallel for schedule(static) if (simulationDimension == SD::k2D)
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
     {
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
       {
         const size_t i = get1DIndex(z, y, x, dimensionSizes);
 
@@ -1586,13 +1594,13 @@ void KSpaceFirstOrderSolver::computeVelocityHomogeneousNonuniform()
   }// z
 
   #pragma omp parallel for schedule(static) if (simulationDimension == SD::k3D)
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(dimensionSizes.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(dimensionSizes.nz); z++)
   {
     #pragma omp parallel for schedule(static) if (simulationDimension == SD::k2D)
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
     {
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
       {
         const size_t i = get1DIndex(z, y, x, dimensionSizes);
 
@@ -1604,12 +1612,12 @@ void KSpaceFirstOrderSolver::computeVelocityHomogeneousNonuniform()
   if (simulationDimension == SD::k3D)
   {
     #pragma omp parallel for schedule(static)
-    for (SignedIndex z = 0; z < static_cast<SignedIndex>(dimensionSizes.nz); z++)
+    for (SignedIndex z = 0; z < toSigned(dimensionSizes.nz); z++)
     {
-      for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+      for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
       {
         #pragma omp simd
-        for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+        for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
         {
           const size_t i = get1DIndex(z, y, x, dimensionSizes);
 
@@ -1654,13 +1662,13 @@ void KSpaceFirstOrderSolver::computeShiftedVelocity()
   getTempFftwShift().computeR2CFft1DX(getRealMatrix(MI::kUxSgx));
 
   #pragma omp parallel for schedule(static) if (simulationDimension == SD::k3D)
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(xShiftDims.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(xShiftDims.nz); z++)
   {
     #pragma omp parallel for schedule(static) if (simulationDimension == SD::k2D)
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(xShiftDims.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(xShiftDims.ny); y++)
     {
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(xShiftDims.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(xShiftDims.nx); x++)
       {
         const size_t i = get1DIndex(z, y, x, xShiftDims);
 
@@ -1675,13 +1683,13 @@ void KSpaceFirstOrderSolver::computeShiftedVelocity()
   getTempFftwShift().computeR2CFft1DY(getRealMatrix(MI::kUySgy));
 
   #pragma omp parallel for schedule(static) if (simulationDimension == SD::k3D)
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(yShiftDims.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(yShiftDims.nz); z++)
   {
     #pragma omp parallel for schedule(static) if (simulationDimension == SD::k2D)
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(yShiftDims.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(yShiftDims.ny); y++)
     {
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(yShiftDims.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(yShiftDims.nx); x++)
       {
         const size_t i = get1DIndex(z, y, x, yShiftDims);
 
@@ -1697,12 +1705,12 @@ void KSpaceFirstOrderSolver::computeShiftedVelocity()
     getTempFftwShift().computeR2CFft1DZ(getRealMatrix(MI::kUzSgz));
 
     #pragma omp parallel for schedule(static)
-    for (SignedIndex z = 0; z < static_cast<SignedIndex>(zShiftDims.nz); z++)
+    for (SignedIndex z = 0; z < toSigned(zShiftDims.nz); z++)
     {
-      for (SignedIndex y = 0; y < static_cast<SignedIndex>(zShiftDims.ny); y++)
+      for (SignedIndex y = 0; y < toSigned(zShiftDims.ny); y++)
       {
         #pragma omp simd
-        for (SignedIndex x = 0; x < static_cast<SignedIndex>(zShiftDims.nx); x++)
+        for (SignedIndex x = 0; x < toSigned(zShiftDims.nx); x++)
         {
           const size_t i = get1DIndex(z, y, x, zShiftDims);
 
@@ -1745,13 +1753,13 @@ void KSpaceFirstOrderSolver::computeVelocityGradient()
 
   // Kernels
   #pragma omp parallel for schedule(static) if (simulationDimension == SD::k3D)
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(reducedDimensionSizes.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(reducedDimensionSizes.nz); z++)
   {
     #pragma omp parallel for schedule(static) if (simulationDimension == SD::k2D)
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(reducedDimensionSizes.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(reducedDimensionSizes.ny); y++)
     {
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(reducedDimensionSizes.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(reducedDimensionSizes.nx); x++)
       {
         const size_t i = get1DIndex(z, y, x, reducedDimensionSizes);
         const float  eKappa = divider * kappa[i];
@@ -1788,13 +1796,13 @@ void KSpaceFirstOrderSolver::computeVelocityGradient()
     float* duzdz = getRealData(MI::kDuzdz, simulationDimension == SD::k3D);
 
     #pragma omp parallel for schedule(static) if (simulationDimension == SD::k3D)
-    for (SignedIndex z = 0; z < static_cast<SignedIndex>(dimensionSizes.nz); z++)
+    for (SignedIndex z = 0; z < toSigned(dimensionSizes.nz); z++)
     {
       #pragma omp parallel for schedule(static) if (simulationDimension == SD::k2D)
-      for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+      for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
       {
         #pragma omp simd
-        for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+        for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
         {
           const size_t i = get1DIndex(z, y, x, dimensionSizes);
 
@@ -1843,10 +1851,10 @@ void  KSpaceFirstOrderSolver::computeVelocityGradientAS()
   getTempFftwX().computeR2CFft1DX(getTemp1FftwRealND());
 
   #pragma omp parallel for schedule(static)
-  for (SignedIndex y = 0; y < static_cast<SignedIndex>(reducedDimensionSizes.ny); y++)
+  for (SignedIndex y = 0; y < toSigned(reducedDimensionSizes.ny); y++)
   {
     #pragma omp simd
-    for (SignedIndex x = 0; x < static_cast<SignedIndex>(reducedDimensionSizes.nx); x++)
+    for (SignedIndex x = 0; x < toSigned(reducedDimensionSizes.nx); x++)
     {
       const size_t i = get1DIndex(y, x, reducedDimensionSizes);
 
@@ -1872,10 +1880,10 @@ void  KSpaceFirstOrderSolver::computeVelocityGradientAS()
   float* uyDivYVec = getRealData(MI::kTemp2RealND);
 
   #pragma omp parallel for schedule(static)
-  for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+  for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
   {
     #pragma omp simd
-    for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+    for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
     {
       const size_t i = get1DIndex(y, x, dimensionSizes);
       // yVecSg holds the inverse value
@@ -1889,10 +1897,10 @@ void  KSpaceFirstOrderSolver::computeVelocityGradientAS()
 
   // tempFftwX() = kappa .* (bsxfun(@times, ddy_k_hahs, tempFftwX()) + tempFftwY())
   #pragma omp parallel for schedule(static)
-  for (SignedIndex y = 0; y < static_cast<SignedIndex>(reducedDimensionSizes.ny); y++)
+  for (SignedIndex y = 0; y < toSigned(reducedDimensionSizes.ny); y++)
   {
     #pragma omp simd
-    for (SignedIndex x = 0; x < static_cast<SignedIndex>(reducedDimensionSizes.nx); x++)
+    for (SignedIndex x = 0; x < toSigned(reducedDimensionSizes.nx); x++)
     {
       const size_t i = get1DIndex(y, x, reducedDimensionSizes);
 
@@ -1913,10 +1921,10 @@ void  KSpaceFirstOrderSolver::computeVelocityGradientAS()
     float* duydy = getRealData(MI::kDuydy);
 
     #pragma omp parallel for schedule(static)
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
     {
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
       {
         const size_t i = get1DIndex(y, x, dimensionSizes);
         duxdx[i] *= duxdxn[x];
@@ -1954,13 +1962,13 @@ void KSpaceFirstOrderSolver::computeDensityNonliner()
   float* rhoZ  = getRealData(MI::kRhoZ, simulationDimension == SD::k3D);
 
   #pragma omp parallel for schedule(static) if (simulationDimension == SD::k3D)
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(dimensionSizes.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(dimensionSizes.nz); z++)
   {
     #pragma omp parallel for schedule(static) if (simulationDimension == SD::k2D)
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
     {
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
       {
         const size_t i = get1DIndex(z, y, x, dimensionSizes);
 
@@ -2009,13 +2017,13 @@ void KSpaceFirstOrderSolver::computeDensityLinear()
   float* rhoZ  = getRealData(MI::kRhoZ, simulationDimension == SD::k3D);
 
   #pragma omp parallel for schedule(static) if (simulationDimension == SD::k3D)
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(dimensionSizes.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(dimensionSizes.nz); z++)
   {
     #pragma omp parallel for schedule(static) if (simulationDimension == SD::k2D)
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
     {
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
       {
         const size_t i     = get1DIndex(z, y, x, dimensionSizes);
 
@@ -2124,7 +2132,7 @@ void KSpaceFirstOrderSolver::sumPressureTermsNonlinearLossless()
 
   #pragma omp parallel for simd schedule(simd:static) \
           aligned(rhoX, rhoY, rhoZ, c2Matrix, bOnAMatrix, rho0Matrix, p : kDataAlignment)
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElements); i++)
+  for (SignedIndex i = 0; i < toSigned(nElements); i++)
   {
     const float c2   = (c0ScalarFlag)   ? c2Scalar   : c2Matrix[i];
     const float bOnA = (bOnAScalarFlag) ? bOnAScalar : bOnAMatrix[i];
@@ -2209,7 +2217,7 @@ void KSpaceFirstOrderSolver::sumPressureTermsNonlinearStokes()
   #pragma omp parallel for simd schedule(simd:static) \
           aligned(rhoX, rhoY, rhoZ, duxdx, duydy, duzdz, \
                   c2Matrix, rho0Matrix, bOnAMatrix, absorbTauMatrix, p : kDataAlignment)
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElements); i++)
+  for (SignedIndex i = 0; i < toSigned(nElements); i++)
   {
     const float c2        = (c0ScalarFlag)        ? c2Scalar        : c2Matrix[i];
     const float rho0      = (rho0ScalarFlag)      ? rho0Scalar      : rho0Matrix[i];
@@ -2243,7 +2251,7 @@ void KSpaceFirstOrderSolver::sumPressureTermsLinearLossless()
   float* p  = getRealData(MI::kP);
 
   #pragma omp parallel for simd schedule(simd:static) aligned(rhoX, rhoY, rhoZ, c2Matrix, p : kDataAlignment)
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElements); i++)
+  for (SignedIndex i = 0; i < toSigned(nElements); i++)
   {
     const float c2      = (c0ScalarFlag) ?  c2Scalar : c2Matrix[i];
 
@@ -2317,7 +2325,7 @@ void KSpaceFirstOrderSolver::sumPressureTermsLinearStokes()
 
   #pragma omp parallel for simd schedule(simd:static) \
           aligned(rhoX, rhoY, rhoZ, duxdx, duydy, duzdz, c2Matrix, rho0Matrix, absorbTauMatrix, p : kDataAlignment)
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElements); i++)
+  for (SignedIndex i = 0; i < toSigned(nElements); i++)
   {
     const float c2        = (c0ScalarFlag)        ? c2Scalar        : c2Matrix[i];
     const float rho0      = (rho0ScalarFlag)      ? rho0Scalar      : rho0Matrix[i];
@@ -2365,7 +2373,7 @@ void KSpaceFirstOrderSolver::computePressureTermsNonlinearPowerLaw(RealMatrix& d
   #pragma omp parallel for simd schedule(simd:static) \
           aligned(rhoX, rhoY, rhoZ, duxdx, duydy, duzdz, bOnAMatrix, rho0Matrix, \
                   pDensitySum, pNonlinearTerm, pVelocityGradientSum : kDataAlignment)
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElements); i++)
+  for (SignedIndex i = 0; i < toSigned(nElements); i++)
   {
     const float rhoSum = (simulationDimension == SD::k3D) ? (rhoX[i]  + rhoY[i]  + rhoZ[i])  : (rhoX[i]  + rhoY[i]);
     const float duSum  = (simulationDimension == SD::k3D) ? (duxdx[i] + duydy[i] + duzdz[i]) : (duxdx[i] + duydy[i]);
@@ -2405,14 +2413,14 @@ void KSpaceFirstOrderSolver::computePressureTermsLinearPowerLaw(RealMatrix& dens
   float* pVelocityGradientSum = velocityGradientSum.getData();
 
   #pragma omp parallel for simd schedule(simd:static) aligned(rhoX, rhoY, rhoZ,pDensitySum : kDataAlignment)
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(size); i++)
+  for (SignedIndex i = 0; i < toSigned(size); i++)
   {
     pDensitySum[i] = (simulationDimension == SD::k3D) ? (rhoX[i] + rhoY[i] + rhoZ[i]) : (rhoX[i] + rhoY[i]);
   }
 
   #pragma omp parallel for simd schedule(simd:static) \
           aligned (duxdx, duydy, duzdz, rho0Matrix, pVelocityGradientSum : kDataAlignment)
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(size); i++)
+  for (SignedIndex i = 0; i < toSigned(size); i++)
   {
     const float rho0  = (rho0ScalarFlag) ? rho0Scalar : rho0Matrix[i];
     const float duSum = (simulationDimension == SD::k3D) ? (duxdx[i] + duydy[i] + duzdz[i]) : (duxdx[i] + duydy[i]);
@@ -2438,7 +2446,7 @@ void KSpaceFirstOrderSolver::computePowerLawAbsorbtionTerm(FftwComplexMatrix& ff
 
   #pragma omp parallel for simd schedule(simd:static) \
           aligned(absorbNabla1, absorbNabla2, pFftPart1, pFftPart2 : kDataAlignment)
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElements); i++)
+  for (SignedIndex i = 0; i < toSigned(nElements); i++)
   {
     pFftPart1[i] *= absorbNabla1[i];
     pFftPart2[i] *= absorbNabla2[i];
@@ -2475,7 +2483,7 @@ void KSpaceFirstOrderSolver::sumPressureTermsNonlinearPowerLaw(const RealMatrix&
 
   #pragma omp parallel for simd schedule(simd:static) \
           aligned(c2Matrix, absorbTauMatrix, absorbEtaMatrix, pAbsorbTauTerm, pAbsorbEtaTerm, bOnA, p : kDataAlignment)
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElements); i++)
+  for (SignedIndex i = 0; i < toSigned(nElements); i++)
   {
     const float c2        = (c0ScalarFlag) ?        c2Scalar        : c2Matrix[i];
     const float absorbTau = (tauAndEtaScalarFlag) ? absorbTauScalar : absorbTauMatrix[i];
@@ -2516,7 +2524,7 @@ void KSpaceFirstOrderSolver::sumPressureTermsLinear(const RealMatrix& absorbTauT
   #pragma omp parallel for simd schedule(simd:static) \
           aligned(c2Matrix, absorbTauMatrix, absorbEtaMatrix, \
                   pAbsorbTauTerm, pAbsorbEtaTerm, pDenistySum, p : kDataAlignment)
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElements); i++)
+  for (SignedIndex i = 0; i < toSigned(nElements); i++)
   {
     const float c2        = (c0ScalarFlag) ?        c2Scalar        : c2Matrix[i];
     const float absorbTau = (tauAndEtaScalarFlag) ? absorbTauScalar : absorbTauMatrix[i];
@@ -2554,7 +2562,7 @@ void KSpaceFirstOrderSolver::addPressureSource()
       case Parameters::SourceMode::kDirichlet:
       {
         #pragma omp parallel for schedule(static) if (sourceSize > 16384)
-        for (SignedIndex i = 0; i < static_cast<SignedIndex>(sourceSize); i++)
+        for (SignedIndex i = 0; i < toSigned(sourceSize); i++)
         {
           const size_t signalIndex = (isManyFlag) ? index2D + i : index2D;
 
@@ -2571,7 +2579,7 @@ void KSpaceFirstOrderSolver::addPressureSource()
       case Parameters::SourceMode::kAdditiveNoCorrection:
       {
         #pragma omp parallel for schedule(static) if (sourceSize > 16384)
-        for (SignedIndex i = 0; i < static_cast<SignedIndex>(sourceSize); i++)
+        for (SignedIndex i = 0; i < toSigned(sourceSize); i++)
         {
           const size_t signalIndex = (isManyFlag) ? index2D + i : index2D;
 
@@ -2607,7 +2615,7 @@ void KSpaceFirstOrderSolver::addPressureSource()
 
         // source_mat(p_source_pos_index) = source.p(p_source_sig_index, t_index);
         #pragma omp parallel for schedule(static)
-        for (SignedIndex i = 0; i < static_cast<SignedIndex>(sourceSize); i++)
+        for (SignedIndex i = 0; i < toSigned(sourceSize); i++)
         {
           const size_t signalIndex = (isManyFlag) ? index2D + i : index2D;
 
@@ -2628,7 +2636,7 @@ void KSpaceFirstOrderSolver::addPressureSource()
 
         // Scaling in Fourier space
         #pragma omp parallel for simd schedule(simd:static)
-        for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElementsReduced); i++)
+        for (SignedIndex i = 0; i < toSigned(nElementsReduced); i++)
         {
           pFftMatrix[i] *= divider * pSourceKappa[i];
         }
@@ -2647,7 +2655,7 @@ void KSpaceFirstOrderSolver::addPressureSource()
 
         // Add the source values to the existing field values
         #pragma omp parallel for simd schedule(simd: static)
-        for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElementsFull); i++)
+        for (SignedIndex i = 0; i < toSigned(nElementsFull); i++)
         {
           rhox[i] += pScaledSource[i];
           rhoy[i] += pScaledSource[i];
@@ -2683,7 +2691,7 @@ void KSpaceFirstOrderSolver::addTransducerSource()
   float* uxSgx = getRealData(MI::kUxSgx);
 
   #pragma omp parallel for schedule(static) if (sourceSize > 16384)
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(sourceSize); i++)
+  for (SignedIndex i = 0; i < toSigned(sourceSize); i++)
   {
     uxSgx[velocitySourceIndex[i]] += transducerSourceInput[delayMask[i] + timeIndex];
   }
@@ -2749,7 +2757,7 @@ void KSpaceFirstOrderSolver::computeVelocitySourceTerm(RealMatrix&        veloci
     case Parameters::SourceMode::kDirichlet:
     {
       #pragma omp parallel for schedule(static) if (sourceSize > 16384)
-      for (SignedIndex i = 0; i < static_cast<SignedIndex>(sourceSize); i++)
+      for (SignedIndex i = 0; i < toSigned(sourceSize); i++)
       {
         const size_t signalIndex = (isManyFlag) ? index2D + i : index2D;
 
@@ -2761,7 +2769,7 @@ void KSpaceFirstOrderSolver::computeVelocitySourceTerm(RealMatrix&        veloci
     case Parameters::SourceMode::kAdditiveNoCorrection:
     {
       #pragma omp parallel for schedule(static) if (sourceSize > 16384)
-      for (SignedIndex i = 0; i < static_cast<SignedIndex>(sourceSize); i++)
+      for (SignedIndex i = 0; i < toSigned(sourceSize); i++)
       {
         const size_t signalIndex = (isManyFlag) ? index2D + i : index2D;
 
@@ -2789,7 +2797,7 @@ void KSpaceFirstOrderSolver::computeVelocitySourceTerm(RealMatrix&        veloci
 
       // source_mat(u_source_pos_index) = source.u(u_source_sig_index, t_index);
       #pragma omp parallel for schedule(static)
-      for (SignedIndex i = 0; i < static_cast<SignedIndex>(sourceSize); i++)
+      for (SignedIndex i = 0; i < toSigned(sourceSize); i++)
       {
         const size_t signalIndex = (isManyFlag) ? index2D + i : index2D;
 
@@ -2818,7 +2826,7 @@ void KSpaceFirstOrderSolver::computeVelocitySourceTerm(RealMatrix&        veloci
       }
 
       #pragma omp parallel for simd schedule(simd:static)
-      for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElementsReduced); i++)
+      for (SignedIndex i = 0; i < toSigned(nElementsReduced); i++)
       {
         pFftMatrix[i] *= divider * pSourceKappa[i];
       }
@@ -2845,7 +2853,7 @@ void KSpaceFirstOrderSolver::computeVelocitySourceTerm(RealMatrix&        veloci
 
       // Add the source values to the existing field values
       #pragma omp parallel for simd schedule(simd:static)
-      for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElementsFull); i++)
+      for (SignedIndex i = 0; i < toSigned(nElementsFull); i++)
       {
         pVelocityMatrix[i] += pScaledSource[i];
       }
@@ -2884,7 +2892,7 @@ void KSpaceFirstOrderSolver::addInitialPressureSource()
   getRealMatrix(MI::kP).copyData(getRealMatrix(MI::kInitialPressureSourceInput));
 
   #pragma omp parallel for simd schedule(simd:static)
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElements); i++)
+  for (SignedIndex i = 0; i < toSigned(nElements); i++)
   {
     const float tmp = sourceInput[i] / (dimScalingFactor * ((c0ScalarFlag) ? c2Scalar : c2Matrix[i]));
 
@@ -2942,7 +2950,7 @@ void KSpaceFirstOrderSolver::computeInitialVelocityUniform()
   // x and y dimensions
   #pragma omp parallel for simd schedule(simd:static) \
           aligned(dtRho0SgxMatrix, dtRho0SgyMatrix, dpdxSgx, dpdySgy, uxSgx, uySgy : kDataAlignment)
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElements); i++)
+  for (SignedIndex i = 0; i < toSigned(nElements); i++)
   {
     const float dtRho0Sgx = (rho0ScalarFlag) ? dtRho0SgxScalar : 0.5f * dtRho0SgxMatrix[i];
     const float dtRho0Sgy = (rho0ScalarFlag) ? dtRho0SgyScalar : 0.5f * dtRho0SgyMatrix[i];
@@ -2962,7 +2970,7 @@ void KSpaceFirstOrderSolver::computeInitialVelocityUniform()
     float* uzSgz = getRealData(MI::kUzSgz);
 
     #pragma omp parallel for simd schedule(simd:static) aligned(dtRho0SgzMatrix, dpdzSgz, uzSgz : kDataAlignment)
-    for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElements); i++)
+    for (SignedIndex i = 0; i < toSigned(nElements); i++)
     {
       const float dtRho0Sgz = (rho0ScalarFlag) ? dtRho0SgzScalar : 0.5f * dtRho0SgzMatrix[i];
 
@@ -2997,13 +3005,13 @@ void KSpaceFirstOrderSolver::computeInitialVelocityHomogeneousNonuniform()
   float* uzSgz = getRealData(MI::kUzSgz, simulationDimension == SD::k3D);
 
   #pragma omp parallel for schedule(static) if (simulationDimension == SD::k3D)
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(dimensionSizes.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(dimensionSizes.nz); z++)
   {
     #pragma omp parallel for schedule(static) if (simulationDimension == SD::k2D)
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
     {
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
       {
         const size_t i = get1DIndex(z, y, x, dimensionSizes);
 
@@ -3038,13 +3046,13 @@ void KSpaceFirstOrderSolver::generateInitialDenisty()
   float* dtRho0Sgz = getRealData(MI::kDtRho0Sgz, simulationDimension == SD::k3D);
 
   #pragma omp parallel for schedule(static) if (simulationDimension == SD::k3D)
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(dimensionSizes.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(dimensionSizes.nz); z++)
   {
     #pragma omp parallel for schedule(static) if (simulationDimension == SD::k2D)
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
     {
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
       {
         const size_t i = get1DIndex(z, y, x, dimensionSizes);
 
@@ -3090,17 +3098,17 @@ void KSpaceFirstOrderSolver::generateKappa()
   };// end of kPart
 
   #pragma omp parallel for schedule(static) if (mParameters.isSimulation3D())
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(reducedDimensionSizes.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(reducedDimensionSizes.nz); z++)
   {
     const float kz = kPart(float(z), nzRec, dz2Rec);
 
     #pragma omp parallel for schedule(static) if (mParameters.isSimulation2D())
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(reducedDimensionSizes.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(reducedDimensionSizes.ny); y++)
     {
       const float ky = kPart(float(y), nyRec, dy2Rec);
 
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(reducedDimensionSizes.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(reducedDimensionSizes.nx); x++)
       {
         const size_t i = get1DIndex(z, y, x, reducedDimensionSizes);
 
@@ -3133,12 +3141,12 @@ void KSpaceFirstOrderSolver::generateKappaAS()
   float* kappa = getRealData(MI::kKappa);
 
   #pragma omp parallel for schedule(static)
-  for (SignedIndex y = 0; y < static_cast<SignedIndex>(reducedDimensionSizes.ny); y++)
+  for (SignedIndex y = 0; y < toSigned(reducedDimensionSizes.ny); y++)
   {
     const float ky = (float(y) + 0.5f) * piDyM;
 
     #pragma omp simd
-    for (SignedIndex x = 0; x < static_cast<SignedIndex>(reducedDimensionSizes.nx); x++)
+    for (SignedIndex x = 0; x < toSigned(reducedDimensionSizes.nx); x++)
     {
       const size_t i = get1DIndex(y, x, reducedDimensionSizes);
 
@@ -3186,7 +3194,7 @@ void KSpaceFirstOrderSolver::generateDerivativeOperators()
   // Calculation done sequentially because the size of the arrays are small < 512
   // Moreover, there's a bug in Intel compiler under windows generating clobbered data.
   // ddxKShiftPos, ddxKShiftPos
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(reducedDimensionSizes.nx); i++)
+  for (SignedIndex i = 0; i < toSigned(reducedDimensionSizes.nx); i++)
   {
     const ptrdiff_t shift    = iFftShift(i, dimensionSizes.nx);
     const float     kx       = (pi2 / dx) * (float(shift) / float(dimensionSizes.nx));
@@ -3197,7 +3205,7 @@ void KSpaceFirstOrderSolver::generateDerivativeOperators()
   }
 
   // ddyKShiftPos, ddyKShiftPos
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(dimensionSizes.ny); i++)
+  for (SignedIndex i = 0; i < toSigned(dimensionSizes.ny); i++)
   {
     const ptrdiff_t shift    = iFftShift(i, dimensionSizes.ny);
     const float     ky       = (pi2 / dy) * (float(shift) / float(dimensionSizes.ny));
@@ -3210,7 +3218,7 @@ void KSpaceFirstOrderSolver::generateDerivativeOperators()
   // ddzKShiftPos, ddzKShiftNeg
   if (mParameters.isSimulation3D())
   {
-    for (SignedIndex i = 0; i < static_cast<SignedIndex>(dimensionSizes.nz); i++)
+    for (SignedIndex i = 0; i < toSigned(dimensionSizes.nz); i++)
     {
       const ptrdiff_t shift    = iFftShift(i, dimensionSizes.nz);
       const float     kz       = (pi2 / dz) * (float(shift) / float(dimensionSizes.nz));
@@ -3257,7 +3265,7 @@ void KSpaceFirstOrderSolver::generateDerivativeOperatorsAS()
   // Calculation done sequentially because the size of the arrays are small < 512
   // Moreover, there's a bug in Intel compiler under windows generating clobbered data.
   // ddxKShiftPos. ddxKShiftPos
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(reducedDimensionSizes.nx); i++)
+  for (SignedIndex i = 0; i < toSigned(reducedDimensionSizes.nx); i++)
   {
     const ptrdiff_t shift    = iFftShift(i, dimensionSizes.nx);
     const float     kx       = (pi2 / dx) * (float(shift) / float(dimensionSizes.nx));
@@ -3269,7 +3277,7 @@ void KSpaceFirstOrderSolver::generateDerivativeOperatorsAS()
   }
 
   // Calculate ddyKHahs, ddyKWswa, yVecSg
-  for (SignedIndex y = 0; y < static_cast<SignedIndex>(reducedDimensionSizes.ny); y++)
+  for (SignedIndex y = 0; y < toSigned(reducedDimensionSizes.ny); y++)
   {
     const float ky = (float(y) + 0.5f) * dyMRec;
 
@@ -3308,17 +3316,17 @@ void KSpaceFirstOrderSolver::generateSourceKappa()
   };// end of kPart
 
   #pragma omp parallel for schedule(static) if (mParameters.isSimulation3D())
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(reducedDimensionSizes.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(reducedDimensionSizes.nz); z++)
   {
     const float kz = kPart(float(z), nzRec, dz2Rec);
 
     #pragma omp parallel for schedule(static) if (mParameters.isSimulation2D())
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(reducedDimensionSizes.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(reducedDimensionSizes.ny); y++)
     {
       const float ky = kPart(float(y), nyRec, dy2Rec);
 
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(reducedDimensionSizes.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(reducedDimensionSizes.nx); x++)
       {
         const size_t i = get1DIndex(z, y, x, reducedDimensionSizes);
 
@@ -3350,12 +3358,12 @@ void KSpaceFirstOrderSolver::generateSourceKappaAS()
   float* sourceKappa = getRealData(MI::kSourceKappa);
 
   #pragma omp parallel for schedule(static)
-  for (SignedIndex y = 0; y < static_cast<SignedIndex>(reducedDimensionSizes.ny); y++)
+  for (SignedIndex y = 0; y < toSigned(reducedDimensionSizes.ny); y++)
   {
     const float ky  = (float(y) + 0.5f) * piDyM;
 
     #pragma omp simd
-    for (SignedIndex x = 0; x < static_cast<SignedIndex>(reducedDimensionSizes.nx); x++)
+    for (SignedIndex x = 0; x < toSigned(reducedDimensionSizes.nx); x++)
     {
       const size_t i = get1DIndex(y, x, reducedDimensionSizes);
 
@@ -3406,17 +3414,17 @@ void KSpaceFirstOrderSolver::generateKappaAndNablas()
   };// end of kPart
 
   #pragma omp parallel for schedule(static) if (mParameters.isSimulation3D())
-  for (SignedIndex z = 0; z < static_cast<SignedIndex>(reducedDimensionSizes.nz); z++)
+  for (SignedIndex z = 0; z < toSigned(reducedDimensionSizes.nz); z++)
   {
     const float kz = kPart(float(z), nzRec, dzSqRec);
 
     #pragma omp parallel for schedule(static) if (mParameters.isSimulation2D())
-    for (SignedIndex y = 0; y < static_cast<SignedIndex>(reducedDimensionSizes.ny); y++)
+    for (SignedIndex y = 0; y < toSigned(reducedDimensionSizes.ny); y++)
     {
       const float ky = kPart(float(y), nyRec, dySqRec);
 
       #pragma omp simd
-      for (SignedIndex x = 0; x < static_cast<SignedIndex>(reducedDimensionSizes.nx); x++)
+      for (SignedIndex x = 0; x < toSigned(reducedDimensionSizes.nx); x++)
       {
         const float kx    = kPart(float(x), nxRec, dxSqRec);
         const float k     = pi2 * sqrt(kx + ky + kz);
@@ -3480,13 +3488,13 @@ void KSpaceFirstOrderSolver::generateTauAndEta()
     float* absorbEta = getRealData(MI::kAbsorbEta);
 
     #pragma omp parallel for schedule(static) if (mParameters.isSimulation3D())
-    for (SignedIndex z = 0; z < static_cast<SignedIndex>(dimensionSizes.nz); z++)
+    for (SignedIndex z = 0; z < toSigned(dimensionSizes.nz); z++)
     {
       #pragma omp parallel for schedule(static) if (mParameters.isSimulation2D())
-      for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+      for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
       {
         #pragma omp simd
-        for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+        for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
         {
           const size_t i = get1DIndex(z, y, x, dimensionSizes);
 
@@ -3541,13 +3549,13 @@ void KSpaceFirstOrderSolver::generateTau()
     float* absorbTau = getRealData(MI::kAbsorbTau);
 
     #pragma omp parallel for schedule(static) if (mParameters.isSimulation3D())
-    for (SignedIndex z = 0; z < static_cast<SignedIndex>(dimensionSizes.nz); z++)
+    for (SignedIndex z = 0; z < toSigned(dimensionSizes.nz); z++)
     {
       #pragma omp parallel for schedule(static) if (mParameters.isSimulation2D())
-      for (SignedIndex y = 0; y < static_cast<SignedIndex>(dimensionSizes.ny); y++)
+      for (SignedIndex y = 0; y < toSigned(dimensionSizes.ny); y++)
       {
         #pragma omp simd
-        for (SignedIndex x = 0; x < static_cast<SignedIndex>(dimensionSizes.nx); x++)
+        for (SignedIndex x = 0; x < toSigned(dimensionSizes.nx); x++)
         {
           const size_t i = get1DIndex(z, y, x, dimensionSizes);
 
@@ -3592,7 +3600,7 @@ void KSpaceFirstOrderSolver::generateNonStaggeredShiftVariables()
   // Calculation done sequentially because the size of the arrays are small < 512
   // Moreover, there's a bug in Intel compiler under windows generating clobbered data.
   // xShiftNeg - No SIMD due to Intel Compiler bug under Windows
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(shiftDimensions.nx); i++)
+  for (SignedIndex i = 0; i < toSigned(shiftDimensions.nx); i++)
   {
     const ptrdiff_t shift = iFftShift(i, dimensionSizes.nx);
     const float     kx    = (pi2 / dx) * (float(shift) / float(dimensionSizes.nx));
@@ -3601,7 +3609,7 @@ void KSpaceFirstOrderSolver::generateNonStaggeredShiftVariables()
   }
 
   // yShiftNeg
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(shiftDimensions.ny); i++)
+  for (SignedIndex i = 0; i < toSigned(shiftDimensions.ny); i++)
   {
     const ptrdiff_t shift = iFftShift(i, dimensionSizes.ny);
     const float     ky    = (pi2 / dy) * (float(shift) / float(dimensionSizes.ny));
@@ -3612,7 +3620,7 @@ void KSpaceFirstOrderSolver::generateNonStaggeredShiftVariables()
   // zShiftNeg
   if (mParameters.isSimulation3D())
   {
-    for (SignedIndex i = 0; i < static_cast<SignedIndex>(shiftDimensions.nz); i++)
+    for (SignedIndex i = 0; i < toSigned(shiftDimensions.nz); i++)
     {
       const ptrdiff_t shift = iFftShift(i, dimensionSizes.nz);
       const float     kz    = (pi2 / dz) * (float(shift) / float(dimensionSizes.nz));
@@ -3650,7 +3658,7 @@ void KSpaceFirstOrderSolver::generatePml()
   // Init arrays
   auto initPml = [](float* pml, float* pmlSg, size_t size)
   {
-    for (SignedIndex i = 0; i < static_cast<SignedIndex>(size); i++)
+    for (SignedIndex i = 0; i < toSigned(size); i++)
     {
       pml[i]   = 1.0f;
       pmlSg[i] = 1.0f;
@@ -3674,7 +3682,7 @@ void KSpaceFirstOrderSolver::generatePml()
   initPml(pmlX, pmlXSgx, dimensionSizes.nx);
 
   // Too difficult for SIMD
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(pmlXSize); i++)
+  for (SignedIndex i = 0; i < toSigned(pmlXSize); i++)
   {
     pmlX[i]    = pmlLeft(float(i),        cRefDx, pmlXAlpha, pmlXSize);
     pmlXSgx[i] = pmlLeft(float(i) + 0.5f, cRefDx, pmlXAlpha, pmlXSize);
@@ -3689,7 +3697,7 @@ void KSpaceFirstOrderSolver::generatePml()
   initPml(pmlY, pmlYSgy, dimensionSizes.ny);
 
   // Too difficult for SIMD
-  for (SignedIndex i = 0; i < static_cast<SignedIndex>(pmlYSize); i++)
+  for (SignedIndex i = 0; i < toSigned(pmlYSize); i++)
   {
     if (!mParameters.isSimulationAS())
     { // for axisymmetric code the PML is only on the outer side
@@ -3716,7 +3724,7 @@ void KSpaceFirstOrderSolver::generatePml()
     initPml(pmlZ, pmlZSgz, dimensionSizes.nz);
 
     // Too difficult for SIMD
-    for (SignedIndex i = 0; i < static_cast<SignedIndex>(pmlZSize); i++)
+    for (SignedIndex i = 0; i < toSigned(pmlZSize); i++)
     {
       pmlZ[i]    = pmlLeft(float(i)       , cRefDz, pmlZAlpha, pmlZSize);
       pmlZSgz[i] = pmlLeft(float(i) + 0.5f, cRefDz, pmlZAlpha, pmlZSize);
@@ -3742,7 +3750,7 @@ void KSpaceFirstOrderSolver::generateC2()
     float* c2 = getRealData(MI::kC2);
 
     #pragma omp parallel for simd schedule(simd:static) aligned(c2 : kDataAlignment)
-    for (SignedIndex i = 0; i < static_cast<SignedIndex>(nElements); i++)
+    for (SignedIndex i = 0; i < toSigned(nElements); i++)
     {
       c2[i] = c2[i] * c2[i];
     }
