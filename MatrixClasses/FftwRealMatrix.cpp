@@ -40,6 +40,7 @@
 
 #include <Parameters/Parameters.h>
 #include <Logger/Logger.h>
+#include <Utils/OmpHelpers.h>
 
 //--------------------------------------------------------------------------------------------------------------------//
 //---------------------------------------------------- Constants -----------------------------------------------------//
@@ -220,12 +221,14 @@ void FftwRealMatrix::computeForwardR2RFft1DY(const TransformKind kind,
                                mDimensionSizes.nx, mData, mDimensionSizes.ny);
 
       //Intel Compiler + MKL
+      const auto slabCount = omp_helpers::toSigned(mDimensionSizes.nx);
       #pragma omp parallel for schedule(static)
-      for (size_t slab_id = 0; slab_id < mDimensionSizes.nx; slab_id++)
+      for (omp_helpers::SignedIndex slab_id = 0; slab_id < slabCount; slab_id++)
       {
+        const size_t offset = static_cast<size_t>(slab_id) * mDimensionSizes.ny;
         fftwf_execute_r2r(mInPlaceR2RPlans1DY[kind],
-                          &mData[slab_id * mDimensionSizes.ny],
-                          &mData[slab_id * mDimensionSizes.ny]);
+                          &mData[offset],
+                          &mData[offset]);
       }
 
       mkl_simatcopy ('r', 't', mDimensionSizes.nx, mDimensionSizes.ny, 1.0f,
@@ -273,12 +276,14 @@ void FftwRealMatrix::computeInverseR2RFft1DY(const TransformKind kind,
                         mData, mDimensionSizes.nx, mDimensionSizes.ny);
 
       //Intel Compiler + MKL
+      const auto slabCount = omp_helpers::toSigned(mDimensionSizes.nx);
       #pragma omp parallel for schedule(static)
-      for (size_t slab_id = 0; slab_id < mDimensionSizes.nx; slab_id++)
+      for (omp_helpers::SignedIndex slab_id = 0; slab_id < slabCount; slab_id++)
       {
+        const size_t offset = static_cast<size_t>(slab_id) * mDimensionSizes.ny;
         fftwf_execute_r2r(mInPlaceR2RPlans1DY[kind],
-                          &mData[slab_id * mDimensionSizes.ny],
-                          &mData[slab_id * mDimensionSizes.ny]);
+                          &mData[offset],
+                          &mData[offset]);
       }
 
       mkl_somatcopy ('r', 't', mDimensionSizes.nx, mDimensionSizes.ny, 1.0f, mData,
@@ -316,12 +321,14 @@ void FftwRealMatrix::computeR2RFft1DY(const TransformKind kind)
 
 
       //Intel Compiler + MKL
+      const auto slabCount = omp_helpers::toSigned(mDimensionSizes.nx);
       #pragma omp parallel for schedule(static)
-      for (size_t slab_id = 0; slab_id < mDimensionSizes.nx; slab_id++)
+      for (omp_helpers::SignedIndex slab_id = 0; slab_id < slabCount; slab_id++)
       {
+        const size_t offset = static_cast<size_t>(slab_id) * mDimensionSizes.ny;
         fftwf_execute_r2r(mInPlaceR2RPlans1DY[kind],
-                          &mData[slab_id * mDimensionSizes.ny],
-                          &mData[slab_id * mDimensionSizes.ny]);
+                          &mData[offset],
+                          &mData[offset]);
       }
 
       mkl_simatcopy ('r', 't', mDimensionSizes.nx, mDimensionSizes.ny, 1.0f, mData,

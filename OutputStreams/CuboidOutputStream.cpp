@@ -34,6 +34,7 @@
 
 #include <OutputStreams/CuboidOutputStream.h>
 #include <Parameters/Parameters.h>
+#include <Utils/OmpHelpers.h>
 
 //--------------------------------------------------------------------------------------------------------------------//
 //------------------------------------------------- Public methods ---------------------------------------------------//
@@ -370,19 +371,28 @@ void CuboidOutputStream::sampleAggregated()
                             (bottomRightCorner.nx - topLeftCorner.nx + 1);
     size_t cuboidRowSize  = (bottomRightCorner.nx - topLeftCorner.nx + 1);
 
+    const auto zStart = omp_helpers::toSigned(topLeftCorner.nz);
+    const auto zEnd   = omp_helpers::toSigned(bottomRightCorner.nz);
+    const auto yStart = omp_helpers::toSigned(topLeftCorner.ny);
+    const auto yEnd   = omp_helpers::toSigned(bottomRightCorner.ny);
+    const auto xStart = omp_helpers::toSigned(topLeftCorner.nx);
+    const auto xEnd   = omp_helpers::toSigned(bottomRightCorner.nx);
+
     #pragma omp for collapse(3)
-    for (size_t z = topLeftCorner.nz; z <= bottomRightCorner.nz; z++)
+    for (omp_helpers::SignedIndex z = zStart; z <= zEnd; z++)
     {
-      for (size_t y = topLeftCorner.ny; y <= bottomRightCorner.ny; y++)
+      for (omp_helpers::SignedIndex y = yStart; y <= yEnd; y++)
       {
-        for (size_t x = topLeftCorner.nx; x <= bottomRightCorner.nx; x++)
+        for (omp_helpers::SignedIndex x = xStart; x <= xEnd; x++)
         {
           const size_t storeBufferIndex = cuboidInBufferStart +
-                                          (z - topLeftCorner.nz) * cuboidSlabSize +
-                                          (y - topLeftCorner.ny) * cuboidRowSize  +
-                                          (x - topLeftCorner.nx);
+                                          (static_cast<size_t>(z) - topLeftCorner.nz) * cuboidSlabSize +
+                                          (static_cast<size_t>(y) - topLeftCorner.ny) * cuboidRowSize  +
+                                          (static_cast<size_t>(x) - topLeftCorner.nx);
 
-          const size_t sourceIndex = z * slabSize + y * rowSize + x;
+          const size_t sourceIndex = static_cast<size_t>(z) * slabSize +
+                                     static_cast<size_t>(y) * rowSize +
+                                     static_cast<size_t>(x);
 
           // Based on template parameter
           switch (reduceOp)
