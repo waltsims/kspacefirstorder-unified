@@ -8,11 +8,7 @@
       "default-features": true,
       "features": ["zlib", "szip"]
     },
-    {
-      "name": "fftw3",
-      "default-features": true,
-
-    },
+    "fftw3",
     "zlib"
   ]
 }
