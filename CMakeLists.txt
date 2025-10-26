@@ -53,9 +53,17 @@ endif()
 
 # Optimize (match prior configs)
 if(MSVC)
-  add_compile_options($<$<CONFIG:Release>:/O2 /Ot /GL>)
+  add_compile_options(
+    "$<$<CONFIG:Release>:/O2>"
+    "$<$<CONFIG:Release>:/Ot>"
+    "$<$<CONFIG:Release>:/GL>"
+  )
 else()
-  add_compile_options($<$<CONFIG:Release>:-O3 -ffast-math -fassociative-math>)
+  add_compile_options(
+    "$<$<CONFIG:Release>:-O3>"
+    "$<$<CONFIG:Release>:-ffast-math>"
+    "$<$<CONFIG:Release>:-fassociative-math>"
+  )
 endif()
 
 # ---------------- OpenMP ----------------
