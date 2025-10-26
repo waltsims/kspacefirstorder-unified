@@ -30,6 +30,7 @@
  */
 
 #include <cmath>
+#include <cstddef>
 #include <immintrin.h>
 #include <limits>
 
@@ -87,8 +88,10 @@ void BaseOutputStream::postProcess()
       const float scalingCoeff = 1.0f / (Parameters::getInstance().getNt() -
                                          Parameters::getInstance().getSamplingStartTimeIndex());
 
-      #pragma omp parallel for simd schedule(simd:static)
-      for (size_t i = 0; i < mBufferSize; i++)
+      const std::ptrdiff_t bufferSize = static_cast<std::ptrdiff_t>(mBufferSize);
+
+      #pragma omp parallel for schedule(static)
+      for (std::ptrdiff_t i = 0; i < bufferSize; i++)
       {
         mStoreBuffer[i] = sqrt(mStoreBuffer[i] * scalingCoeff);
       }
@@ -131,9 +134,10 @@ void BaseOutputStream::allocateMemory()
   {
     case ReduceOperator::kNone:
     {
+      const std::ptrdiff_t bufferSize = static_cast<std::ptrdiff_t>(mBufferSize);
       // Zero the matrix
-      #pragma omp parallel for simd schedule(simd:static)
-      for (size_t i = 0; i < mBufferSize; i++)
+      #pragma omp parallel for schedule(static)
+      for (std::ptrdiff_t i = 0; i < bufferSize; i++)
       {
         mStoreBuffer[i] = 0.0f;
       }
@@ -142,9 +146,10 @@ void BaseOutputStream::allocateMemory()
 
     case ReduceOperator::kRms:
     {
+      const std::ptrdiff_t bufferSize = static_cast<std::ptrdiff_t>(mBufferSize);
       // Zero the matrix
-      #pragma omp parallel for simd schedule(simd:static)
-      for (size_t i = 0; i < mBufferSize; i++)
+      #pragma omp parallel for schedule(static)
+      for (std::ptrdiff_t i = 0; i < bufferSize; i++)
       {
         mStoreBuffer[i] = 0.0f;
       }
@@ -153,9 +158,10 @@ void BaseOutputStream::allocateMemory()
 
     case ReduceOperator::kMax:
     {
+      const std::ptrdiff_t bufferSize = static_cast<std::ptrdiff_t>(mBufferSize);
       // Set the values to the highest negative float value
-      #pragma omp parallel for simd schedule(simd:static)
-      for (size_t i = 0; i < mBufferSize; i++)
+      #pragma omp parallel for schedule(static)
+      for (std::ptrdiff_t i = 0; i < bufferSize; i++)
       {
         mStoreBuffer[i] = -1.0f * std::numeric_limits<float>::max();
       }
@@ -164,9 +170,10 @@ void BaseOutputStream::allocateMemory()
 
     case ReduceOperator::kMin:
     {
+      const std::ptrdiff_t bufferSize = static_cast<std::ptrdiff_t>(mBufferSize);
       // Set the values to the highest float value
-      #pragma omp parallel for simd schedule(simd:static)
-      for (size_t i = 0; i < mBufferSize; i++)
+      #pragma omp parallel for schedule(static)
+      for (std::ptrdiff_t i = 0; i < bufferSize; i++)
       {
         mStoreBuffer[i] = std::numeric_limits<float>::max();
       }

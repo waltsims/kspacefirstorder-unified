@@ -31,6 +31,7 @@
 
 #include <immintrin.h>
 #include <assert.h>
+#include <cstddef>
 
 #include <MatrixClasses/BaseFloatMatrix.h>
 #include <Utils/DimensionSizes.h>
@@ -59,9 +60,10 @@ BaseFloatMatrix::BaseFloatMatrix()
 void BaseFloatMatrix::copyData(const BaseFloatMatrix& src)
 {
   const float* srcData = src.getData();
+  const std::ptrdiff_t capacity = static_cast<std::ptrdiff_t>(mCapacity);
 
-  #pragma omp parallel for simd schedule(simd:static) firstprivate(srcData)
-  for (size_t i = 0; i < mCapacity; i++)
+  #pragma omp parallel for schedule(static) firstprivate(srcData)
+  for (std::ptrdiff_t i = 0; i < capacity; i++)
   {
     mData[i] = srcData[i];
   }
@@ -73,8 +75,10 @@ void BaseFloatMatrix::copyData(const BaseFloatMatrix& src)
  */
 void BaseFloatMatrix::zeroMatrix()
 {
-  #pragma omp parallel for simd schedule(simd:static)
-  for (size_t i = 0; i < mCapacity; i++)
+  const std::ptrdiff_t capacity = static_cast<std::ptrdiff_t>(mCapacity);
+
+  #pragma omp parallel for schedule(static)
+  for (std::ptrdiff_t i = 0; i < capacity; i++)
   {
     mData[i] = 0.0f;
   }
@@ -86,8 +90,10 @@ void BaseFloatMatrix::zeroMatrix()
  */
 void BaseFloatMatrix::scalarDividedBy(const float scalar)
 {
-  #pragma omp parallel for simd schedule(simd:static) firstprivate(scalar)
-  for (size_t i = 0; i < mCapacity; i++)
+  const std::ptrdiff_t capacity = static_cast<std::ptrdiff_t>(mCapacity);
+
+  #pragma omp parallel for schedule(static) firstprivate(scalar)
+  for (std::ptrdiff_t i = 0; i < capacity; i++)
   {
     mData[i] = scalar / mData[i];
   }

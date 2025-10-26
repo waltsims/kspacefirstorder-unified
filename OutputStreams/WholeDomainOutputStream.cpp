@@ -31,6 +31,7 @@
  */
 
 #include <algorithm>
+#include <cstddef>
 
 #include <OutputStreams/WholeDomainOutputStream.h>
 #include <Parameters/Parameters.h>
@@ -174,8 +175,10 @@ void WholeDomainOutputStream::sample()
 
     case ReduceOperator::kRms:
     {
-      #pragma omp parallel for simd schedule(simd:static)
-      for (size_t i = 0; i < mBufferSize; i++)
+      const std::ptrdiff_t bufferSize = static_cast<std::ptrdiff_t>(mBufferSize);
+
+      #pragma omp parallel for schedule(static)
+      for (std::ptrdiff_t i = 0; i < bufferSize; i++)
       {
         mStoreBuffer[i] += (sourceData[i] * sourceData[i]);
       }
@@ -184,8 +187,10 @@ void WholeDomainOutputStream::sample()
 
     case ReduceOperator::kMax:
     {
-      #pragma omp parallel for simd schedule(simd:static)
-      for (size_t i = 0; i < mBufferSize; i++)
+      const std::ptrdiff_t bufferSize = static_cast<std::ptrdiff_t>(mBufferSize);
+
+      #pragma omp parallel for schedule(static)
+      for (std::ptrdiff_t i = 0; i < bufferSize; i++)
       {
         mStoreBuffer[i] = std::max(mStoreBuffer[i], sourceData[i]);
       }
@@ -194,8 +199,10 @@ void WholeDomainOutputStream::sample()
 
     case ReduceOperator::kMin:
     {
-      #pragma omp parallel for simd schedule(simd:static)
-      for (size_t i = 0; i < mBufferSize; i++)
+      const std::ptrdiff_t bufferSize = static_cast<std::ptrdiff_t>(mBufferSize);
+
+      #pragma omp parallel for schedule(static)
+      for (std::ptrdiff_t i = 0; i < bufferSize; i++)
       {
         mStoreBuffer[i] = std::min(mStoreBuffer[i], sourceData[i]);
       }
