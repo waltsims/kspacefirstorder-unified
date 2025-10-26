@@ -82,8 +82,10 @@ endif()
 
 # ---------------- Dependencies ----------------
 find_package(HDF5 CONFIG REQUIRED COMPONENTS C HL)
-if(NOT (TARGET HDF5::HDF5 AND TARGET HDF5::HDF5_HL))
-  message(FATAL_ERROR "HDF5 C and HL targets are required.")
+set(HDF5_C_TARGET hdf5::hdf5-shared)
+set(HDF5_HL_TARGET hdf5::hdf5_hl-shared)
+if(NOT (TARGET ${HDF5_C_TARGET} AND TARGET ${HDF5_HL_TARGET}))
+  message(FATAL_ERROR "Expected vcpkg HDF5 shared targets ${HDF5_C_TARGET} and ${HDF5_HL_TARGET}.")
 endif()
 
 if(USE_MKL)
@@ -165,8 +167,8 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 target_link_libraries(kspaceFirstOrder-OMP
   PRIVATE
-    HDF5::HDF5
-    HDF5::HDF5_HL
+    ${HDF5_C_TARGET}
+    ${HDF5_HL_TARGET}
     ${SOLVER_LIBS}
 )
 
