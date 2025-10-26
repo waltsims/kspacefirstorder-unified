@@ -66,6 +66,8 @@ else()
   )
 endif()
 
+set(OPENMP_LINK_LIBS "")
+
 # ---------------- OpenMP ----------------
 if(ENABLE_OPENMP)
   if(MSVC)
@@ -78,9 +80,7 @@ if(ENABLE_OPENMP)
     find_package(OpenMP REQUIRED)
     message(STATUS "OpenMP found: ${OpenMP_CXX_FLAGS}")
     add_compile_options(${OpenMP_CXX_FLAGS})
-    if(OpenMP_CXX_LIB_NAMES)
-      link_libraries(OpenMP::OpenMP_CXX)
-    endif()
+    list(APPEND OPENMP_LINK_LIBS OpenMP::OpenMP_CXX)
   endif()
 endif()
 
@@ -197,6 +197,30 @@ target_compile_definitions(kspaceFirstOrder-OMP PRIVATE __KWAVE_GIT_HASH__="${GI
 if(MSVC)
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
+
+set(HDF5_LINK_LIBS "")
+foreach(candidate HDF5::HDF5 HDF5::hdf5 hdf5::hdf5)
+  if(TARGET ${candidate})
+    list(APPEND HDF5_LINK_LIBS ${candidate})
+    break()
+  endif()
+endforeach()
+foreach(candidate HDF5::HDF5_HL HDF5::hdf5_hl hdf5::hdf5_hl)
+  if(TARGET ${candidate})
+    list(APPEND HDF5_LINK_LIBS ${candidate})
+    break()
+  endif()
+endforeach()
+if(NOT HDF5_LINK_LIBS AND HDF5_LIBRARIES)
+  list(APPEND HDF5_LINK_LIBS ${HDF5_LIBRARIES})
+endif()
+
+target_link_libraries(kspaceFirstOrder-OMP
+  PRIVATE
+    ${OPENMP_LINK_LIBS}
+    ${HDF5_LINK_LIBS}
+    ${FFT_LIBS}
+)
 
 target_include_directories(kspaceFirstOrder-OMP PRIVATE .)
 
