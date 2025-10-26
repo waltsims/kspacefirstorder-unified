@@ -66,70 +66,36 @@ else()
   )
 endif()
 
-set(OPENMP_LINK_LIBS "")
+# ---------------- Compiler guard ----------------
+if(NOT MSVC)
+  message(FATAL_ERROR "This build currently supports MSVC only.")
+endif()
 
 # ---------------- OpenMP ----------------
 if(ENABLE_OPENMP)
-  if(MSVC)
-    if(FORCE_MSVC_LLVM_OPENMP)
-      add_compile_options(/openmp:llvm)
-    else()
-      add_compile_options(/openmp:experimental)
-    endif()
+  if(FORCE_MSVC_LLVM_OPENMP)
+    add_compile_options(/openmp:llvm)
   else()
-    find_package(OpenMP REQUIRED)
-    message(STATUS "OpenMP found: ${OpenMP_CXX_FLAGS}")
-    add_compile_options(${OpenMP_CXX_FLAGS})
-    list(APPEND OPENMP_LINK_LIBS OpenMP::OpenMP_CXX)
+    add_compile_options(/openmp:experimental)
   endif()
 endif()
 
 # ---------------- Dependencies ----------------
-set(HDF5_REQUIRED_COMPONENTS C HL)
-find_package(HDF5 CONFIG QUIET)
-if(NOT HDF5_FOUND)
-  find_package(HDF5 REQUIRED COMPONENTS ${HDF5_REQUIRED_COMPONENTS})
+find_package(HDF5 CONFIG REQUIRED COMPONENTS C HL)
+if(NOT (TARGET HDF5::HDF5 AND TARGET HDF5::HDF5_HL))
+  message(FATAL_ERROR "HDF5 C and HL targets are required.")
 endif()
-message(STATUS "HDF5 found: ${HDF5_DIR} (targets or vars available)")
 
 if(USE_MKL)
   find_package(MKL CONFIG REQUIRED)
-  set(FFT_LIBS MKL::MKL)
+  set(SOLVER_LIBS MKL::MKL)
   add_definitions(-DUSE_MKL_BACKEND)
 else()
   find_package(FFTW3 CONFIG REQUIRED)
-  if(NOT TARGET FFTW3::fftw3f)
-    # vcpkg builds FFTW precision variants as separate packages, so pick up FFTW3f when needed.
-    find_package(FFTW3f CONFIG QUIET)
+  if(NOT (TARGET FFTW3::fftw3f AND TARGET FFTW3::fftw3f_threads))
+    message(FATAL_ERROR "FFTW3 single-precision + threads targets are required.")
   endif()
-
-  set(_fftw_single_target "")
-  foreach(candidate FFTW3::fftw3f FFTW3f::fftw3f fftw3f::fftw3f)
-    if(TARGET ${candidate})
-      set(_fftw_single_target ${candidate})
-      break()
-    endif()
-  endforeach()
-
-  set(_fftw_single_omp_target "")
-  foreach(candidate FFTW3::fftw3f_omp FFTW3f::fftw3f_omp fftw3f::fftw3f_omp)
-    if(TARGET ${candidate})
-      set(_fftw_single_omp_target ${candidate})
-      break()
-    endif()
-  endforeach()
-
-  if(_fftw_single_target)
-    if(_fftw_single_omp_target)
-      set(FFT_LIBS ${_fftw_single_omp_target} ${_fftw_single_target})
-    else()
-      set(FFT_LIBS ${_fftw_single_target})
-    endif()
-  else()
-    message(FATAL_ERROR
-      "FFTW single-precision target not found. Install FFTW with float support (e.g. FFTW3f) "
-      "or configure the build with USE_MKL=ON.")
-  endif()
+  set(SOLVER_LIBS FFTW3::fftw3f_threads FFTW3::fftw3f)
 endif()
 
 # ---------------- Sources ----------------
@@ -195,26 +161,14 @@ add_executable(kspaceFirstOrder-OMP ${SRC} ${HDR})
 
 target_compile_definitions(kspaceFirstOrder-OMP PRIVATE __KWAVE_GIT_HASH__="${GIT_HASH}")
 
-if(MSVC)
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-set(HDF5_LINK_LIBS "")
-foreach(candidate HDF5::HDF5 HDF5::hdf5 hdf5::hdf5)
-  if(TARGET ${candidate})
-    list(APPEND HDF5_LINK_LIBS ${candidate})
-    break()
-  endif()
-endforeach()
-foreach(candidate HDF5::HDF5_HL HDF5::hdf5_hl hdf5::hdf5_hl)
-  if(TARGET ${candidate})
-    list(APPEND HDF5_LINK_LIBS ${candidate})
-    break()
-  endif()
-endforeach()
-if(NOT HDF5_LINK_LIBS AND HDF5_LIBRARIES)
-  list(APPEND HDF5_LINK_LIBS ${HDF5_LIBRARIES})
-endif()
+target_link_libraries(kspaceFirstOrder-OMP
+  PRIVATE
+    HDF5::HDF5
+    HDF5::HDF5_HL
+    ${SOLVER_LIBS}
+)
 
 target_link_libraries(kspaceFirstOrder-OMP
   PRIVATE
