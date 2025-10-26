@@ -82,10 +82,33 @@ endif()
 
 # ---------------- Dependencies ----------------
 find_package(HDF5 CONFIG REQUIRED COMPONENTS C HL)
-set(HDF5_C_TARGET hdf5::hdf5-shared)
-set(HDF5_HL_TARGET hdf5::hdf5_hl-shared)
-if(NOT (TARGET ${HDF5_C_TARGET} AND TARGET ${HDF5_HL_TARGET}))
-  message(FATAL_ERROR "Expected vcpkg HDF5 shared targets ${HDF5_C_TARGET} and ${HDF5_HL_TARGET}.")
+set(_hdf5_candidates
+  HDF5::HDF5
+  hdf5::hdf5-shared
+  hdf5::hdf5)
+set(_hdf5_hl_candidates
+  HDF5::HDF5_HL
+  hdf5::hdf5_hl-shared
+  hdf5::hdf5_hl)
+set(HDF5_C_TARGET "")
+foreach(candidate ${_hdf5_candidates})
+  if(TARGET ${candidate})
+    set(HDF5_C_TARGET ${candidate})
+    break()
+  endif()
+endforeach()
+if(NOT HDF5_C_TARGET)
+  message(FATAL_ERROR "Unable to locate HDF5 C target from expected candidates: ${_hdf5_candidates}")
+endif()
+set(HDF5_HL_TARGET "")
+foreach(candidate ${_hdf5_hl_candidates})
+  if(TARGET ${candidate})
+    set(HDF5_HL_TARGET ${candidate})
+    break()
+  endif()
+endforeach()
+if(NOT HDF5_HL_TARGET)
+  message(FATAL_ERROR "Unable to locate HDF5 HL target from expected candidates: ${_hdf5_hl_candidates}")
 endif()
 
 if(USE_MKL)
@@ -94,10 +117,38 @@ if(USE_MKL)
   add_definitions(-DUSE_MKL_BACKEND)
 else()
   find_package(FFTW3 CONFIG REQUIRED)
-  if(NOT (TARGET FFTW3::fftw3f AND TARGET FFTW3::fftw3f_threads))
-    message(FATAL_ERROR "FFTW3 single-precision + threads targets are required.")
+  set(_fftw_float_candidates
+    FFTW3::fftw3f
+    FFTW3f::fftw3f
+    fftw3::fftw3f)
+  set(_fftw_threads_candidates
+    FFTW3::fftw3f_threads
+    FFTW3f::fftw3f_threads
+    fftw3::fftw3f_threads)
+
+  set(FFTW_FLOAT_TARGET "")
+  foreach(candidate ${_fftw_float_candidates})
+    if(TARGET ${candidate})
+      set(FFTW_FLOAT_TARGET ${candidate})
+      break()
+    endif()
+  endforeach()
+  if(NOT FFTW_FLOAT_TARGET)
+    message(FATAL_ERROR "Unable to locate FFTW float target from expected candidates: ${_fftw_float_candidates}")
   endif()
-  set(SOLVER_LIBS FFTW3::fftw3f_threads FFTW3::fftw3f)
+
+  set(FFTW_FLOAT_THREADS_TARGET "")
+  foreach(candidate ${_fftw_threads_candidates})
+    if(TARGET ${candidate})
+      set(FFTW_FLOAT_THREADS_TARGET ${candidate})
+      break()
+    endif()
+  endforeach()
+  if(NOT FFTW_FLOAT_THREADS_TARGET)
+    message(FATAL_ERROR "Unable to locate FFTW float threads target from expected candidates: ${_fftw_threads_candidates}")
+  endif()
+
+  set(SOLVER_LIBS ${FFTW_FLOAT_THREADS_TARGET} ${FFTW_FLOAT_TARGET})
 endif()
 
 # ---------------- Sources ----------------
