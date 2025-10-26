@@ -6,6 +6,6 @@
     { "name": "hdf5", "default-features": true, "features": ["zlib", "szip"] },
     { "name": "fftw3", "default-features": true, "features": ["single", "threads"] },
     "zlib",
-    "libszip"
+    "szip"
   ]
 }

@@ -24,6 +24,9 @@ jobs:
         with:
           arch: x64
 
+      - name: Install Ninja
+        run: choco install ninja --no-progress -y
+
       - name: Install vcpkg
         uses: lukka/run-vcpkg@v11
         with:
