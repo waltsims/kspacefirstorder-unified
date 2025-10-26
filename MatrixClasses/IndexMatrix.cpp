@@ -29,10 +29,9 @@
  * If not, see [http://www.gnu.org/licenses/](http://www.gnu.org/licenses/).
  */
 
-#include <cstddef>
-
 #include <MatrixClasses/IndexMatrix.h>
 #include <Logger/Logger.h>
+#include <Utils/OmpHelpers.h>
 
 //--------------------------------------------------------------------------------------------------------------------//
 //------------------------------------------------- Public methods ---------------------------------------------------//
@@ -161,10 +160,10 @@ DimensionSizes IndexMatrix::getBottomRightCorner(const size_t& index) const
  */
 void IndexMatrix::recomputeIndicesToCPP()
 {
-  const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(mSize);
+  const auto size = omp_helpers::toSigned(mSize);
 
   #pragma omp parallel for schedule(static)
-  for (std::ptrdiff_t i = 0; i < size; i++)
+  for (omp_helpers::SignedIndex i = 0; i < size; i++)
   {
     mData[i]--;
   }
@@ -176,10 +175,10 @@ void IndexMatrix::recomputeIndicesToCPP()
  */
 void IndexMatrix::recomputeIndicesToMatlab()
 {
-  const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(mSize);
+  const auto size = omp_helpers::toSigned(mSize);
 
   #pragma omp parallel for schedule(static)
-  for (std::ptrdiff_t i = 0; i < size; i++)
+  for (omp_helpers::SignedIndex i = 0; i < size; i++)
   {
     mData[i]++;
   }

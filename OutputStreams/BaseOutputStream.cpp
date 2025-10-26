@@ -30,7 +30,6 @@
  */
 
 #include <cmath>
-#include <cstddef>
 #include <immintrin.h>
 #include <limits>
 
@@ -45,6 +44,7 @@
 
 #include <OutputStreams/BaseOutputStream.h>
 #include <Parameters/Parameters.h>
+#include <Utils/OmpHelpers.h>
 
 //--------------------------------------------------------------------------------------------------------------------//
 //------------------------------------------------- Public methods ---------------------------------------------------//
@@ -88,10 +88,10 @@ void BaseOutputStream::postProcess()
       const float scalingCoeff = 1.0f / (Parameters::getInstance().getNt() -
                                          Parameters::getInstance().getSamplingStartTimeIndex());
 
-      const std::ptrdiff_t bufferSize = static_cast<std::ptrdiff_t>(mBufferSize);
+      const auto bufferSize = omp_helpers::toSigned(mBufferSize);
 
       #pragma omp parallel for schedule(static)
-      for (std::ptrdiff_t i = 0; i < bufferSize; i++)
+      for (omp_helpers::SignedIndex i = 0; i < bufferSize; i++)
       {
         mStoreBuffer[i] = sqrt(mStoreBuffer[i] * scalingCoeff);
       }
@@ -134,10 +134,10 @@ void BaseOutputStream::allocateMemory()
   {
     case ReduceOperator::kNone:
     {
-      const std::ptrdiff_t bufferSize = static_cast<std::ptrdiff_t>(mBufferSize);
+      const auto bufferSize = omp_helpers::toSigned(mBufferSize);
       // Zero the matrix
       #pragma omp parallel for schedule(static)
-      for (std::ptrdiff_t i = 0; i < bufferSize; i++)
+      for (omp_helpers::SignedIndex i = 0; i < bufferSize; i++)
       {
         mStoreBuffer[i] = 0.0f;
       }
@@ -146,10 +146,10 @@ void BaseOutputStream::allocateMemory()
 
     case ReduceOperator::kRms:
     {
-      const std::ptrdiff_t bufferSize = static_cast<std::ptrdiff_t>(mBufferSize);
+      const auto bufferSize = omp_helpers::toSigned(mBufferSize);
       // Zero the matrix
       #pragma omp parallel for schedule(static)
-      for (std::ptrdiff_t i = 0; i < bufferSize; i++)
+      for (omp_helpers::SignedIndex i = 0; i < bufferSize; i++)
       {
         mStoreBuffer[i] = 0.0f;
       }
@@ -158,10 +158,10 @@ void BaseOutputStream::allocateMemory()
 
     case ReduceOperator::kMax:
     {
-      const std::ptrdiff_t bufferSize = static_cast<std::ptrdiff_t>(mBufferSize);
+      const auto bufferSize = omp_helpers::toSigned(mBufferSize);
       // Set the values to the highest negative float value
       #pragma omp parallel for schedule(static)
-      for (std::ptrdiff_t i = 0; i < bufferSize; i++)
+      for (omp_helpers::SignedIndex i = 0; i < bufferSize; i++)
       {
         mStoreBuffer[i] = -1.0f * std::numeric_limits<float>::max();
       }
@@ -170,10 +170,10 @@ void BaseOutputStream::allocateMemory()
 
     case ReduceOperator::kMin:
     {
-      const std::ptrdiff_t bufferSize = static_cast<std::ptrdiff_t>(mBufferSize);
+      const auto bufferSize = omp_helpers::toSigned(mBufferSize);
       // Set the values to the highest float value
       #pragma omp parallel for schedule(static)
-      for (std::ptrdiff_t i = 0; i < bufferSize; i++)
+      for (omp_helpers::SignedIndex i = 0; i < bufferSize; i++)
       {
         mStoreBuffer[i] = std::numeric_limits<float>::max();
       }

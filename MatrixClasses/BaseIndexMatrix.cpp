@@ -31,10 +31,10 @@
 
 #include <immintrin.h>
 #include <assert.h>
-#include <cstddef>
 
 #include <MatrixClasses/BaseIndexMatrix.h>
 #include <Utils/DimensionSizes.h>
+#include <Utils/OmpHelpers.h>
 
 //--------------------------------------------------------------------------------------------------------------------//
 //------------------------------------------------- Public methods ---------------------------------------------------//
@@ -59,10 +59,10 @@ BaseIndexMatrix::BaseIndexMatrix()
  */
 void BaseIndexMatrix::zeroMatrix()
 {
-  const std::ptrdiff_t capacity = static_cast<std::ptrdiff_t>(mCapacity);
+  const auto capacity = omp_helpers::toSigned(mCapacity);
 
   #pragma omp parallel for schedule(static)
-  for (std::ptrdiff_t i = 0; i < capacity; i++)
+  for (omp_helpers::SignedIndex i = 0; i < capacity; i++)
   {
     mData[i] = size_t(0);
   }

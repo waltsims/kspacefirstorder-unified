@@ -46,7 +46,6 @@
   #include <omp.h>
 #endif
 
-#include <cstddef>
 #include <immintrin.h>
 #include <cmath>
 #include <ctime>
@@ -58,6 +57,7 @@
 
 #include <MatrixClasses/FftwComplexMatrix.h>
 #include <Logger/Logger.h>
+#include <Utils/OmpHelpers.h>
 
 using std::ios;
 /// Shortcut for Simulation dimensions.
@@ -66,16 +66,8 @@ using SD = Parameters::SimulationDimension;
 using MI = MatrixContainer::MatrixIdx;
 /// Shortcut for Output stream id in the container.
 using OI = OutputStreamContainer::OutputStreamIdx;
-/// Signed index type for OpenMP loops.
-using SignedIndex = std::ptrdiff_t;
-
-namespace
-{
-  inline SignedIndex toSigned(const size_t value)
-  {
-    return static_cast<SignedIndex>(value);
-  }
-}
+using omp_helpers::SignedIndex;
+using omp_helpers::toSigned;
 
 //--------------------------------------------------------------------------------------------------------------------//
 //------------------------------------------------- Initialization ---------------------------------------------------//

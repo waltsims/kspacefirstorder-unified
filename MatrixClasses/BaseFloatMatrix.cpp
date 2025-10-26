@@ -31,10 +31,10 @@
 
 #include <immintrin.h>
 #include <assert.h>
-#include <cstddef>
 
 #include <MatrixClasses/BaseFloatMatrix.h>
 #include <Utils/DimensionSizes.h>
+#include <Utils/OmpHelpers.h>
 
 //--------------------------------------------------------------------------------------------------------------------//
 //------------------------------------------------- Public methods ---------------------------------------------------//
@@ -60,10 +60,10 @@ BaseFloatMatrix::BaseFloatMatrix()
 void BaseFloatMatrix::copyData(const BaseFloatMatrix& src)
 {
   const float* srcData = src.getData();
-  const std::ptrdiff_t capacity = static_cast<std::ptrdiff_t>(mCapacity);
+  const auto capacity = omp_helpers::toSigned(mCapacity);
 
   #pragma omp parallel for schedule(static) firstprivate(srcData)
-  for (std::ptrdiff_t i = 0; i < capacity; i++)
+  for (omp_helpers::SignedIndex i = 0; i < capacity; i++)
   {
     mData[i] = srcData[i];
   }
@@ -75,10 +75,10 @@ void BaseFloatMatrix::copyData(const BaseFloatMatrix& src)
  */
 void BaseFloatMatrix::zeroMatrix()
 {
-  const std::ptrdiff_t capacity = static_cast<std::ptrdiff_t>(mCapacity);
+  const auto capacity = omp_helpers::toSigned(mCapacity);
 
   #pragma omp parallel for schedule(static)
-  for (std::ptrdiff_t i = 0; i < capacity; i++)
+  for (omp_helpers::SignedIndex i = 0; i < capacity; i++)
   {
     mData[i] = 0.0f;
   }
@@ -90,10 +90,10 @@ void BaseFloatMatrix::zeroMatrix()
  */
 void BaseFloatMatrix::scalarDividedBy(const float scalar)
 {
-  const std::ptrdiff_t capacity = static_cast<std::ptrdiff_t>(mCapacity);
+  const auto capacity = omp_helpers::toSigned(mCapacity);
 
   #pragma omp parallel for schedule(static) firstprivate(scalar)
-  for (std::ptrdiff_t i = 0; i < capacity; i++)
+  for (omp_helpers::SignedIndex i = 0; i < capacity; i++)
   {
     mData[i] = scalar / mData[i];
   }

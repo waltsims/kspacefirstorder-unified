@@ -32,7 +32,6 @@
 #ifndef KSPACE_FIRST_ORDER_SOLVER_H
 #define KSPACE_FIRST_ORDER_SOLVER_H
 
-#include <cstddef>
 #include <functional>
 
 #include <Parameters/Parameters.h>
@@ -47,6 +46,7 @@
 #include <MatrixClasses/FftwRealMatrix.h>
 
 #include <OutputStreams/BaseOutputStream.h>
+#include <Utils/OmpHelpers.h>
 #include <Utils/TimeMeasure.h>
 
 /**
@@ -656,9 +656,9 @@ class KSpaceFirstOrderSolver
      * @param [in] dimensionSizes - Size of the matrix.
      * @return
      */
-    size_t get1DIndex(const std::ptrdiff_t  z,
-                      const std::ptrdiff_t  y,
-                      const std::ptrdiff_t  x,
+    size_t get1DIndex(const omp_helpers::SignedIndex  z,
+                      const omp_helpers::SignedIndex  y,
+                      const omp_helpers::SignedIndex  x,
                       const DimensionSizes& dimensionSizes) const;
     /**
      * @brief Compute 1D index using 2 spatial coordinates and the size of the matrix.
@@ -667,8 +667,8 @@ class KSpaceFirstOrderSolver
      * @param [in] dimensionSizes - Size of the matrix.
      * @return
      */
-    size_t get1DIndex(const std::ptrdiff_t  y,
-                      const std::ptrdiff_t  x,
+    size_t get1DIndex(const omp_helpers::SignedIndex  y,
+                      const omp_helpers::SignedIndex  x,
                       const DimensionSizes& dimensionSizes) const;
 
     //--------------------------------------- Getters for temporary matrices -----------------------------------------//
