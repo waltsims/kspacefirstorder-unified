@@ -115,16 +115,20 @@ if(USE_MKL)
   find_package(MKL CONFIG REQUIRED)
   set(SOLVER_LIBS MKL::MKL)
   add_definitions(-DUSE_MKL_BACKEND)
-else()
-  find_package(FFTW3 CONFIG REQUIRED)
-  set(_fftw_float_candidates
-    FFTW3::fftw3f
-    FFTW3f::fftw3f
-    fftw3::fftw3f)
-  set(_fftw_threads_candidates
-    FFTW3::fftw3f_threads
-    FFTW3f::fftw3f_threads
-    fftw3::fftw3f_threads)
+  else()
+    find_package(FFTW3 CONFIG REQUIRED)
+    # vcpkg packages the single-precision libs as fftw3f, so try to load that config as well.
+    find_package(fftw3f CONFIG QUIET)
+    set(_fftw_float_candidates
+      FFTW3::fftw3f
+      FFTW3f::fftw3f
+      fftw3::fftw3f
+      fftw3f::fftw3f)
+    set(_fftw_threads_candidates
+      FFTW3::fftw3f_threads
+      FFTW3f::fftw3f_threads
+      fftw3::fftw3f_threads
+      fftw3f::fftw3f_threads)
 
   set(FFTW_FLOAT_TARGET "")
   foreach(candidate ${_fftw_float_candidates})
