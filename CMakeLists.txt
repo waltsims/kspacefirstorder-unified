@@ -234,16 +234,6 @@ target_link_libraries(kspaceFirstOrder-OMP
 
 target_include_directories(kspaceFirstOrder-OMP PRIVATE .)
 
-if(TARGET hdf5::hdf5)
-  target_link_libraries(kspaceFirstOrder-OMP PRIVATE hdf5::hdf5 hdf5::hdf5_hl)
-elseif(HDF5_FOUND)
-  target_include_directories(kspaceFirstOrder-OMP PRIVATE ${HDF5_INCLUDE_DIRS})
-  target_link_libraries(kspaceFirstOrder-OMP PRIVATE ${HDF5_LIBRARIES})
-  if(DEFINED HDF5_HL_LIBRARIES)
-    target_link_libraries(kspaceFirstOrder-OMP PRIVATE ${HDF5_HL_LIBRARIES})
-  endif()
-endif()
-
 target_link_libraries(kspaceFirstOrder-OMP PRIVATE ${FFT_LIBS})
 
 if(ENABLE_OPENMP AND OpenMP_CXX_FOUND)
