@@ -149,10 +149,15 @@ if(USE_MKL)
     endif()
   endforeach()
   if(NOT FFTW_FLOAT_THREADS_TARGET)
-    message(FATAL_ERROR "Unable to locate FFTW float threads target from expected candidates: ${_fftw_threads_candidates}")
+    message(STATUS "FFTW float threads target not found; assuming threads combined into ${FFTW_FLOAT_TARGET}")
+    set(FFTW_FLOAT_THREADS_TARGET ${FFTW_FLOAT_TARGET})
   endif()
 
-  set(SOLVER_LIBS ${FFTW_FLOAT_THREADS_TARGET} ${FFTW_FLOAT_TARGET})
+  if("${FFTW_FLOAT_THREADS_TARGET}" STREQUAL "${FFTW_FLOAT_TARGET}")
+    set(SOLVER_LIBS ${FFTW_FLOAT_TARGET})
+  else()
+    set(SOLVER_LIBS ${FFTW_FLOAT_THREADS_TARGET} ${FFTW_FLOAT_TARGET})
+  endif()
 endif()
 
 # ---------------- Sources ----------------
