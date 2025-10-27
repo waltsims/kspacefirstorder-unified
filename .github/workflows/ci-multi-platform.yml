@@ -290,81 +290,59 @@ jobs:
 
   windows-openmp:
     runs-on: windows-latest
+    env:
+      VCPKG_ROOT: C:\vcpkg
+      VCPKG_COMMIT: 271a5b8850aa50f9a40269cbf3cf414b36e333d6
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v5
         with:
-          submodules: true
+          submodules: recursive
           fetch-depth: 0
 
-      - name: Ensure LLVM (Clang + OpenMP)
-        shell: pwsh
-        run: |
-          $llvmRoot = "C:\Program Files\LLVM"
-          choco upgrade llvm -y --no-progress
-          if (-not (Test-Path "$llvmRoot\bin\clang-cl.exe")) {
-            throw "clang-cl not found under $llvmRoot after LLVM installation"
-          }
-          echo "LLVM_ROOT=$llvmRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Setup MSVC dev env
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
-      - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v2.0.0
+      - name: Install Ninja
+        run: choco install ninja --no-progress -y
 
-      - name: Install vcpkg and deps (OpenMP)
-        shell: pwsh
-        run: |
-          $vcpkgRoot = "$env:RUNNER_TEMP\vcpkg"
-          git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
-          & "$vcpkgRoot\bootstrap-vcpkg.bat"
-          & "$vcpkgRoot\vcpkg.exe" install `
-            hdf5[szip]:x64-windows-static `
-            libaec:x64-windows-static `
-            zlib:x64-windows-static `
-            fftw3[openmp]:x64-windows-static
-          echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
-          $manual = Join-Path $vcpkgRoot "installed\x64-windows-static\lib\manual-link"
-          $primary = Join-Path $vcpkgRoot "installed\x64-windows-static\lib"
+      - name: Install vcpkg (manifest mode)
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
 
-          function Resolve-LibraryName {
-            param(
-              [string[]]$Candidates,
-              [string]$Default
-            )
-            foreach ($candidate in $Candidates) {
-              if (Test-Path (Join-Path $manual $candidate)) { return $candidate }
-              if (Test-Path (Join-Path $primary $candidate)) { return $candidate }
-            }
-            Write-Warning "Unable to locate ${Candidates[0]} variants; defaulting to $Default"
-            return $Default
-          }
-
-          $libaec = Resolve-LibraryName -Candidates @('aec-static.lib','szip-static.lib','libaec.lib','aec.lib','szip.lib') -Default 'aec-static.lib'
-          echo "LIBAEC_LIB=$libaec" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-          $hdf5Lib   = Resolve-LibraryName -Candidates @('hdf5-static.lib','libhdf5.lib','hdf5.lib') -Default 'hdf5-static.lib'
-          $hdf5HlLib = Resolve-LibraryName -Candidates @('hdf5_hl-static.lib','libhdf5_hl.lib','hdf5_hl.lib') -Default 'hdf5_hl-static.lib'
-          echo "HDF5_LIB=$hdf5Lib" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "HDF5_HL_LIB=$hdf5HlLib" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Cache vcpkg artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.VCPKG_ROOT }}\installed
+            ${{ env.VCPKG_ROOT }}\packages
+          key: >
+            vcpkg-${{ runner.os }}-${{ env.VCPKG_COMMIT }}-${{
+            hashFiles('repos/kspaceFirstOrder-openmp-windows/vcpkg.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-${{ env.VCPKG_COMMIT }}-
+            vcpkg-${{ runner.os }}-
 
       - name: Configure (OpenMP, Windows)
-        shell: pwsh
-        env:
-          VCPKG_ROOT: ${{ env.VCPKG_ROOT }}
-          LLVM_ROOT: ${{ env.LLVM_ROOT }}
-        run: |
-          $env:PATH = "$env:LLVM_ROOT\bin;$env:VCPKG_ROOT;${env:PATH}"
-          cmake -S repos/kspaceFirstOrder-openmp-windows -B build/openmp-windows `
-            -DCMAKE_BUILD_TYPE=Release `
-            -T ClangCL `
-            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
-            -DVCPKG_TARGET_TRIPLET=x64-windows-static `
-            -DHDF5_USE_STATIC_LIBRARIES=ON `
-            -DOpenMP_LLVM_ROOT="$env:LLVM_ROOT"
+        run: >
+          cmake -S repos/kspaceFirstOrder-openmp-windows -B build/openmp-windows
+          -G "Ninja"
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}\scripts\buildsystems\vcpkg.cmake
+          -DUSE_MKL=OFF
+          -DENABLE_OPENMP=ON
+          -DARCH=avx2
 
       - name: Build (OpenMP, Windows)
+        run: cmake --build build/openmp-windows --parallel
+
+      - name: Smoke test (OpenMP Windows)
         shell: pwsh
         run: |
-          cmake --build build/openmp-windows --config Release -- /m
+          & ".\build\openmp-windows\kspaceFirstOrder-OMP.exe" --help | Select-Object -First 20
 
       - name: Upload artifacts (OpenMP Windows)
         if: success()
@@ -372,14 +350,14 @@ jobs:
         with:
           name: kspaceFirstOrder-openmp-windows-windows-latest
           path: |
-            build/openmp-windows/Release/kspaceFirstOrder-OMP.exe
+            build/openmp-windows/kspaceFirstOrder-OMP.exe
           if-no-files-found: error
 
       - name: Build diagnostics (OpenMP Windows)
         if: failure()
         shell: pwsh
         run: |
-          clang-cl --version || $true
+          cl.exe || $true
           if (Test-Path 'build/openmp-windows/CMakeFiles/CMakeError.log') {
             Write-Host '----- CMakeError.log -----'
             Get-Content 'build/openmp-windows/CMakeFiles/CMakeError.log'
@@ -388,4 +366,3 @@ jobs:
             Write-Host '----- CMakeOutput.log -----'
             Get-Content 'build/openmp-windows/CMakeFiles/CMakeOutput.log'
           }
-          & msbuild -version || $true
