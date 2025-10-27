@@ -1,0 +1,73 @@
+name: CI - Windows OpenMP
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  VCPKG_ROOT: C:\vcpkg
+  VCPKG_COMMIT: 271a5b8850aa50f9a40269cbf3cf414b36e333d6
+
+jobs:
+  build-windows-openmp:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup MSVC developer command prompt
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Ninja
+        run: choco install ninja --no-progress -y
+
+      - name: Install vcpkg (manifest mode)
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+
+      - name: Cache vcpkg artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.VCPKG_ROOT }}\installed
+            ${{ env.VCPKG_ROOT }}\packages
+          key: >
+            vcpkg-${{ runner.os }}-${{ env.VCPKG_COMMIT }}-${{
+            hashFiles('repos/kspaceFirstOrder-openmp-windows/vcpkg.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-${{ env.VCPKG_COMMIT }}-
+            vcpkg-${{ runner.os }}-
+
+      - name: Configure (Windows OpenMP CMake build)
+        run: >
+          cmake -S repos/kspaceFirstOrder-openmp-windows -B build/openmp-windows
+          -G "Ninja"
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}\scripts\buildsystems\vcpkg.cmake
+          -DUSE_MKL=OFF
+          -DENABLE_OPENMP=ON
+          -DARCH=avx2
+
+      - name: Build
+        run: cmake --build build/openmp-windows --config Release --parallel
+
+      - name: Package artifact
+        shell: cmd
+        run: |
+          mkdir artifact
+          copy build\openmp-windows\kspaceFirstOrder-OMP.exe artifact\
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kwave-omp-windows
+          path: artifact/
