@@ -225,26 +225,26 @@ target_compile_definitions(kspaceFirstOrder-OMP PRIVATE __KWAVE_GIT_HASH__="${GI
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-target_link_libraries(kspaceFirstOrder-OMP
-  PRIVATE
-    ${HDF5_C_TARGET}
-    ${HDF5_HL_TARGET}
-    ${SOLVER_LIBS}
+set(KSPACE_LINK_LIBS
+  ${HDF5_C_TARGET}
+  ${HDF5_HL_TARGET}
+  ${SOLVER_LIBS}
 )
 
-target_include_directories(kspaceFirstOrder-OMP PRIVATE .)
-
-target_link_libraries(kspaceFirstOrder-OMP PRIVATE ${FFT_LIBS})
+list(APPEND KSPACE_LINK_LIBS ${FFT_LIBS})
 
 if(ENABLE_OPENMP AND OpenMP_CXX_FOUND)
-  target_link_libraries(kspaceFirstOrder-OMP PRIVATE OpenMP::OpenMP_CXX)
+  list(APPEND KSPACE_LINK_LIBS OpenMP::OpenMP_CXX)
 endif()
 
 if(WIN32 AND MSVC)
-  target_link_libraries(kspaceFirstOrder-OMP PRIVATE
+  list(APPEND KSPACE_LINK_LIBS
     kernel32 user32 gdi32 winspool comdlg32 advapi32 shell32 ole32 oleaut32 uuid odbc32 odbccp32
   )
 endif()
+
+target_include_directories(kspaceFirstOrder-OMP PRIVATE .)
+target_link_libraries(kspaceFirstOrder-OMP PRIVATE ${KSPACE_LINK_LIBS})
 
 if(MSVC)
   target_link_options(kspaceFirstOrder-OMP PRIVATE
