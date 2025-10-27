@@ -232,13 +232,6 @@ target_link_libraries(kspaceFirstOrder-OMP
     ${SOLVER_LIBS}
 )
 
-target_link_libraries(kspaceFirstOrder-OMP
-  PRIVATE
-    ${OPENMP_LINK_LIBS}
-    ${HDF5_LINK_LIBS}
-    ${FFT_LIBS}
-)
-
 target_include_directories(kspaceFirstOrder-OMP PRIVATE .)
 
 if(TARGET hdf5::hdf5)
