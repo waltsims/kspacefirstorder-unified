@@ -3,9 +3,9 @@ name: CI (multi-platform)
 on:
   workflow_dispatch:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, cmake-build ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, cmake-build ]
 
 jobs:
   linux-openmp:
