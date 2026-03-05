@@ -251,7 +251,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "vcpkg bootstrap failed with exit code $LASTEXITCODE"
           }
-          & "$vcpkgRoot\vcpkg.exe" install hdf5[hl,szip]:x64-windows zlib:x64-windows
+          & "$vcpkgRoot\vcpkg.exe" install hdf5[szip]:x64-windows zlib:x64-windows
           echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       # Removed legacy alias step; project links vcpkg libs directly
