@@ -2,9 +2,9 @@ name: CI - Windows OpenMP
 
 on:
   push:
-    branches: [ main, develop, cmake-build ]
+    branches: [ main, develop, ci-multi-platform-experiments ]
   pull_request:
-    branches: [ main, cmake-build ]
+    branches: [ main, ci-multi-platform-experiments ]
 
 env:
   VCPKG_ROOT: C:\vcpkg
