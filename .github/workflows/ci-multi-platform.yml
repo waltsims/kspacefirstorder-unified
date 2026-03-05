@@ -183,6 +183,8 @@ jobs:
 
   windows-cuda:
     runs-on: windows-latest
+    env:
+      VCPKG_COMMIT: 271a5b8850aa50f9a40269cbf3cf414b36e333d6
     strategy:
       fail-fast: false
       matrix:
@@ -242,12 +244,14 @@ jobs:
         run: |
           $vcpkgRoot = "$env:RUNNER_TEMP\vcpkg"
           git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
+          git -C $vcpkgRoot fetch --depth 1 origin $env:VCPKG_COMMIT
+          git -C $vcpkgRoot checkout $env:VCPKG_COMMIT
           Write-Host "Bootstrapping vcpkg at: $vcpkgRoot"
           & "$vcpkgRoot\bootstrap-vcpkg.bat" -disableMetrics
           if ($LASTEXITCODE -ne 0) {
             throw "vcpkg bootstrap failed with exit code $LASTEXITCODE"
           }
-          & "$vcpkgRoot\vcpkg.exe" install hdf5[szip]:x64-windows zlib:x64-windows
+          & "$vcpkgRoot\vcpkg.exe" install hdf5[hl,szip]:x64-windows zlib:x64-windows
           echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       # Removed legacy alias step; project links vcpkg libs directly
