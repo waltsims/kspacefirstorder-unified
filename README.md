@@ -15,7 +15,7 @@ This project is a unified C++ implementation of the k-Wave toolbox that accelera
 
 ### Windows (OpenMP via CMake + vcpkg)
 
-The Windows OpenMP implementation now ships with a CMake build that mirrors the upstream `kspaceFirstOrder-OMP-windows` repository and is exercised in `.github/workflows/ci-windows.yml`. To reproduce the build locally:
+The Windows OpenMP implementation now ships with a CMake build that mirrors the upstream `kspaceFirstOrder-OMP-windows` repository and is exercised by the `windows-openmp` job in `.github/workflows/ci-multi-platform.yml`. To reproduce the build locally:
 
 1. Install Visual Studio 2022 (Desktop development with C++ workload), [Ninja](https://ninja-build.org/), and bootstrap [vcpkg](https://github.com/microsoft/vcpkg) (for example into `C:\vcpkg`).
 2. Update submodules so the Windows sources and manifest (`vcpkg.json`) are present:

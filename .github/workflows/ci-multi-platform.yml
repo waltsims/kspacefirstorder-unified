@@ -45,8 +45,15 @@ jobs:
         run: |
           set -euxo pipefail
           cd build/openmp-linux
-          chmod +x ./kspaceFirstOrder-OMP || true
-          LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial:${LD_LIBRARY_PATH:-}" ./kspaceFirstOrder-OMP --help | head -n 40 || true
+          chmod +x ./kspaceFirstOrder-OMP
+          # Write --help to a file first, then take the first 40 lines for the
+          # log. If we piped directly into `head -n 40`, head would close the
+          # pipe after reading the 40th line; the binary would get SIGPIPE on
+          # its next write and exit 141, which `pipefail` would then promote
+          # to a smoke-test failure even though --help worked.
+          LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial:${LD_LIBRARY_PATH:-}" \
+            ./kspaceFirstOrder-OMP --help > /tmp/kspaceFirstOrder-OMP-help.txt
+          head -n 40 /tmp/kspaceFirstOrder-OMP-help.txt
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4.3.1
@@ -321,19 +328,11 @@ jobs:
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
-
-      - name: Cache vcpkg artifacts
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.VCPKG_ROOT }}\installed
-            ${{ env.VCPKG_ROOT }}\packages
-          key: >
-            vcpkg-${{ runner.os }}-${{ env.VCPKG_COMMIT }}-${{
-            hashFiles('repos/kspaceFirstOrder-openmp-windows/vcpkg.json') }}
-          restore-keys: |
-            vcpkg-${{ runner.os }}-${{ env.VCPKG_COMMIT }}-
-            vcpkg-${{ runner.os }}-
+          # run-vcpkg@v11 handles binary caching internally via GitHub
+          # Actions cache (keyed off vcpkg commit + vcpkg.json hash), so
+          # the previous explicit `actions/cache@v4` step here was
+          # redundant — it cached the same paths twice with slightly
+          # different keys, racing the action's own cache.
 
       - name: Configure (OpenMP, Windows)
         run: >
@@ -355,7 +354,7 @@ jobs:
 
       - name: Upload artifacts (OpenMP Windows)
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.1
         with:
           name: kspaceFirstOrder-openmp-windows-windows-latest
           path: |
