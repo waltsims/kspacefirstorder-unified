@@ -1,17 +1,25 @@
 name: CI (multi-platform)
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, ci-multi-platform-experiments ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, ci-multi-platform-experiments ]
+
+# Single source of truth for the vcpkg pin used by every job that
+# needs vcpkg (currently windows-cuda and windows-openmp). Bumping
+# the pin only requires editing this one line; both Windows jobs
+# inherit the value automatically.
+env:
+  VCPKG_COMMIT: 271a5b8850aa50f9a40269cbf3cf414b36e333d6
 
 jobs:
   linux-openmp:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: true
           fetch-depth: 0
@@ -22,46 +30,51 @@ jobs:
           sudo apt-get install -y \
             build-essential cmake pkg-config \
             libhdf5-dev libfftw3-dev
+      - name: Configure (OpenMP, Linux)
+        run: |
+          set -euxo pipefail
+          cmake -S repos/kspaceFirstOrder-openmp-linux -B build/openmp-linux \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DHDF5_ROOT=/usr/lib/x86_64-linux-gnu/hdf5/serial \
+            -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial;/usr"
       - name: Build (OpenMP, Linux)
         run: |
           set -euxo pipefail
-          cd repos/kspaceFirstOrder-openmp-linux
-          # Try a clean build exactly like the working local command
-          if make -j"$(nproc)" all \
-              LINKING=DYNAMIC COMPILER=GNU \
-              EBROOTHDF5=/usr/lib/x86_64-linux-gnu/hdf5/serial \
-              EBROOTZLIB=/usr EBROOTFFTW=/usr EBROOTSZIP=/usr \
-              LIB_PATHS='-L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib -L/usr/lib/x86_64-linux-gnu'
-          then
-            echo "Built successfully without adjustments."
-          else
-            echo "Falling back: wrapper to set space recipe prefix before parsing"
-            printf '.RECIPEPREFIX := \x20\ninclude Makefile\n' > Makefile.ci
-            make -f Makefile.ci -j"$(nproc)" all \
-                LINKING=DYNAMIC COMPILER=GNU \
-                EBROOTHDF5=/usr/lib/x86_64-linux-gnu/hdf5/serial \
-                EBROOTZLIB=/usr EBROOTFFTW=/usr EBROOTSZIP=/usr \
-                LIB_PATHS='-L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib -L/usr/lib/x86_64-linux-gnu'
-          fi
+          cmake --build build/openmp-linux --parallel "$(nproc)"
       - name: Smoke test (Linux)
         run: |
           set -euxo pipefail
-          cd repos/kspaceFirstOrder-openmp-linux
-          chmod +x ./kspaceFirstOrder-OMP || true
-          LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial:${LD_LIBRARY_PATH:-}" ./kspaceFirstOrder-OMP --help | head -n 40 || true
+          cd build/openmp-linux
+          chmod +x ./kspaceFirstOrder-OMP
+          # Write --help to a file first, then take the first 40 lines for the
+          # log. If we piped directly into `head -n 40`, head would close the
+          # pipe after reading the 40th line; the binary would get SIGPIPE on
+          # its next write and exit 141, which `pipefail` would then promote
+          # to a smoke-test failure even though --help worked.
+          LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial:${LD_LIBRARY_PATH:-}" \
+            ./kspaceFirstOrder-OMP --help > /tmp/kspaceFirstOrder-OMP-help.txt
+          head -n 40 /tmp/kspaceFirstOrder-OMP-help.txt
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.1
         with:
           name: kspaceFirstOrder-openmp-linux-ubuntu-latest
           path: |
-            repos/kspaceFirstOrder-openmp-linux/kspaceFirstOrder-*
+            build/openmp-linux/kspaceFirstOrder-*
           if-no-files-found: error
 
       - name: Build diagnostics
         if: failure()
         run: |
           echo "Build failed for OpenMP (Linux)"
+          if [ -f build/openmp-linux/CMakeFiles/CMakeError.log ]; then
+            echo "----- CMakeError.log -----"
+            cat build/openmp-linux/CMakeFiles/CMakeError.log
+          fi
+          if [ -f build/openmp-linux/CMakeFiles/CMakeOutput.log ]; then
+            echo "----- CMakeOutput.log -----"
+            cat build/openmp-linux/CMakeFiles/CMakeOutput.log
+          fi
           echo "CPU info:"; lscpu || true
           echo "FFTW libs:"; ldconfig -p | grep -i fftw || true
           echo "HDF5 libs:"; ldconfig -p | grep -i hdf5 || true
@@ -74,7 +87,7 @@ jobs:
         cuda-version: ['12.2.0', '13.0.0']
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: true
           fetch-depth: 0
@@ -83,7 +96,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential pkg-config \
+            build-essential pkg-config cmake \
             gcc-12 g++-12 \
             libhdf5-dev zlib1g-dev libfftw3-dev
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 120
@@ -103,35 +116,27 @@ jobs:
           use-local-cache: false
           log-file-suffix: ${{ matrix.cuda-version }}.log.txt
 
-      - name: Build (CUDA, Linux)
+      - name: Configure (CUDA, Linux)
         run: |
           set -euxo pipefail
           export CC=/usr/bin/gcc-12 CXX=/usr/bin/g++-12 CUDAHOSTCXX=/usr/bin/g++-12
-          cd repos/kspaceFirstOrder-cuda-linux
-          # Try a straight build first (as done locally)
-          if make -j"$(nproc)" all \
-               LINKING=DYNAMIC COMPILER=GNU \
-               CUDA_HOME=/usr/local/cuda \
-               EBROOTHDF5=/usr/lib/x86_64-linux-gnu/hdf5/serial \
-               EBROOTZLIB=/usr EBROOTFFTW=/usr EBROOTSZIP=/usr
-          then
-            echo "CUDA build succeeded."
-          else
-            echo "Falling back: set space recipe prefix via wrapper"
-            printf '.RECIPEPREFIX := \x20\ninclude Makefile\n' > Makefile.ci
-            make -f Makefile.ci -j"$(nproc)" all \
-                 LINKING=DYNAMIC COMPILER=GNU \
-                 CUDA_HOME=/usr/local/cuda \
-                 EBROOTHDF5=/usr/lib/x86_64-linux-gnu/hdf5/serial \
-                 EBROOTZLIB=/usr EBROOTFFTW=/usr EBROOTSZIP=/usr
-          fi
+          cmake -S repos/kspaceFirstOrder-cuda-linux -B build/cuda-linux \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DKSPACE_CPU_ARCH=native \
+            -DHDF5_ROOT=/usr/lib/x86_64-linux-gnu/hdf5/serial \
+            -DCUDAToolkit_ROOT=/usr/local/cuda
+
+      - name: Build (CUDA, Linux)
+        run: |
+          set -euxo pipefail
+          cmake --build build/cuda-linux --parallel "$(nproc)"
 
       - name: Upload artifacts (CUDA Linux)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.1
         with:
           name: kspaceFirstOrder-cuda-linux-${{ matrix.cuda-version }}
           path: |
-            repos/kspaceFirstOrder-cuda-linux/kspaceFirstOrder-CUDA
+            build/cuda-linux/kspaceFirstOrder-CUDA
           if-no-files-found: error
 
       - name: Build diagnostics (CUDA Linux)
@@ -143,54 +148,52 @@ jobs:
     runs-on: macos-14
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: true
           fetch-depth: 0
 
       - name: Install dependencies (Homebrew)
         run: |
-          brew update
-          brew install hdf5 fftw zlib libomp
+          set -euxo pipefail
+          export HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_ANALYTICS=1
+          brew install cmake hdf5 fftw libomp zlib
+          brew link --overwrite --force libomp
+
+      - name: Configure (OpenMP, macOS)
+        run: |
+          set -euxo pipefail
+          SRC=repos/kspaceFirstOrder-openmp-darwin
+          BUILD=build/openmp-darwin
+          BREW_PREFIX="$(brew --prefix)"
+          cmake -S "$SRC" -B "$BUILD" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DHOMEBREW_PREFIX="$BREW_PREFIX"
 
       - name: Build (OpenMP, macOS)
         run: |
           set -euxo pipefail
-          H5=$(brew --prefix hdf5)
-          FF=$(brew --prefix fftw)
-          ZL=$(brew --prefix zlib)
-          LO=$(brew --prefix libomp)
-          # Choose FFTW OpenMP lib if available, otherwise fall back to threads lib
-          if [ -f "$FF/lib/libfftw3f_omp.dylib" ] || [ -f "$FF/lib/libfftw3f_omp.a" ]; then
-            FFTW_OMP_LIB="-lfftw3f_omp"
-          else
-            FFTW_OMP_LIB="-lfftw3f_threads"
-          fi
-          cd repos/kspaceFirstOrder-openmp-darwin
-          make -j"$(sysctl -n hw.ncpu)" \
-            HDF5_DIR="$H5" FFT_DIR="$FF" ZLIB_DIR="$ZL" LIBOMP_DIR="$LO" \
-            LDLIBS="-lfftw3f $FFTW_OMP_LIB -lhdf5 -lhdf5_hl -lm -lz -lomp"
+          cmake --build build/openmp-darwin --parallel $(sysctl -n hw.ncpu)
 
       - name: Smoke test (macOS)
         run: |
           set -e
-          cd repos/kspaceFirstOrder-openmp-darwin
-          ./kspaceFirstOrder-OMP --help
+          ./build/openmp-darwin/kspaceFirstOrder-OMP --help
 
       - name: Upload artifacts (macOS)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.1
         with:
           name: kspaceFirstOrder-openmp-darwin-macos-latest
           path: |
-            repos/kspaceFirstOrder-openmp-darwin/kspaceFirstOrder-OMP
+            build/openmp-darwin/kspaceFirstOrder-OMP
           if-no-files-found: error
 
       - name: Build diagnostics (macOS)
         if: failure()
         run: |
-          echo "Brew prefix:"; brew --prefix
-          echo "libomp:"; ls -la $(brew --prefix libomp)/lib || true
-          echo "fftw libs:"; ls -la $(brew --prefix fftw)/lib || true
+          brew --prefix
+          brew list --versions hdf5 fftw libomp zlib || true
+          cmake --version
 
   windows-cuda:
     runs-on: windows-latest
@@ -200,13 +203,13 @@ jobs:
         cuda-version: ['13.0.0']
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: true
           fetch-depth: 0
 
       - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v2.0.0
 
       - name: Install CUDA Toolkit (Windows)
         uses: N-Storm/cuda-toolkit@v0.2.27m
@@ -253,6 +256,8 @@ jobs:
         run: |
           $vcpkgRoot = "$env:RUNNER_TEMP\vcpkg"
           git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
+          git -C $vcpkgRoot fetch --depth 1 origin $env:VCPKG_COMMIT
+          git -C $vcpkgRoot checkout $env:VCPKG_COMMIT
           Write-Host "Bootstrapping vcpkg at: $vcpkgRoot"
           & "$vcpkgRoot\bootstrap-vcpkg.bat" -disableMetrics
           if ($LASTEXITCODE -ne 0) {
@@ -263,23 +268,33 @@ jobs:
 
       # Removed legacy alias step; project links vcpkg libs directly
 
-      - name: Build (CUDA, Windows)
+      - name: Configure (CUDA, Windows)
         shell: pwsh
         env:
-          # Ensure HDF5 headers/libs are discoverable by MSBuild/Linker
-          INCLUDE: ${{ env.VCPKG_ROOT }}\installed\x64-windows\include;${{ env.INCLUDE }}
-          LIB: ${{ env.VCPKG_ROOT }}\installed\x64-windows\lib;${{ env.LIB }}
+          CMAKE_GENERATOR: "Visual Studio 17 2022"
+          CMAKE_GENERATOR_PLATFORM: x64
+          CMAKE_GENERATOR_TOOLSET: host=x64
+          VCPKG_ROOT: ${{ env.VCPKG_ROOT }}
         run: |
-          & msbuild .\repos\kspaceFirstOrder-cuda-windows\kspaceFirstOrder-CUDA.vcxproj `
-              /p:Configuration=Release /p:Platform=x64 /m
+          $env:PATH = "$env:VCPKG_ROOT;${env:PATH}"
+          cmake -S repos/kspaceFirstOrder-cuda-windows -B build/cuda-windows `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DKSPACE_CPU_ARCH=avx2 `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows
+
+      - name: Build (CUDA, Windows)
+        shell: pwsh
+        run: |
+          cmake --build build/cuda-windows --config Release -- /m
 
       - name: Upload artifacts (CUDA Windows)
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.1
         with:
           name: kspaceFirstOrder-cuda-windows-${{ matrix.cuda-version }}
           path: |
-            repos/kspaceFirstOrder-cuda-windows/x64/Release/kspaceFirstOrder-CUDA.exe
+            build/cuda-windows/Release/kspaceFirstOrder-CUDA.exe
           if-no-files-found: error
 
       - name: Build diagnostics (CUDA Windows)
@@ -292,72 +307,70 @@ jobs:
 
   windows-openmp:
     runs-on: windows-latest
+    env:
+      VCPKG_ROOT: C:\vcpkg
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
-          submodules: true
+          submodules: recursive
           fetch-depth: 0
 
-      - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v2
+      - name: Setup MSVC dev env
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
-      - name: Install vcpkg and deps (static + OpenMP)
-        shell: pwsh
-        run: |
-          $vcpkgRoot = "$env:RUNNER_TEMP\vcpkg"
-          git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
-          & "$vcpkgRoot\bootstrap-vcpkg.bat"
-          & "$vcpkgRoot\vcpkg.exe" install `
-            hdf5[szip]:x64-windows-static `
-            libaec:x64-windows-static `
-            zlib:x64-windows-static `
-            fftw3[openmp]:x64-windows-static
-          echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
-          $manual = Join-Path $vcpkgRoot "installed\x64-windows-static\lib\manual-link"
-          $primary = Join-Path $vcpkgRoot "installed\x64-windows-static\lib"
+      - name: Install Ninja
+        run: choco install ninja --no-progress -y
 
-          function Resolve-LibraryName {
-            param(
-              [string[]]$Candidates,
-              [string]$Default
-            )
-            foreach ($candidate in $Candidates) {
-              if (Test-Path (Join-Path $manual $candidate)) { return $candidate }
-              if (Test-Path (Join-Path $primary $candidate)) { return $candidate }
-            }
-            Write-Warning "Unable to locate ${Candidates[0]} variants; defaulting to $Default"
-            return $Default
-          }
+      - name: Install vcpkg (manifest mode)
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+          # run-vcpkg@v11 handles binary caching internally via GitHub
+          # Actions cache (keyed off vcpkg commit + vcpkg.json hash), so
+          # the previous explicit `actions/cache@v4` step here was
+          # redundant — it cached the same paths twice with slightly
+          # different keys, racing the action's own cache.
 
-          $libaec = Resolve-LibraryName -Candidates @('aec-static.lib','szip-static.lib','libaec.lib','aec.lib','szip.lib') -Default 'aec-static.lib'
-          echo "LIBAEC_LIB=$libaec" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-          $hdf5Lib   = Resolve-LibraryName -Candidates @('hdf5-static.lib','libhdf5.lib','hdf5.lib') -Default 'hdf5-static.lib'
-          $hdf5HlLib = Resolve-LibraryName -Candidates @('hdf5_hl-static.lib','libhdf5_hl.lib','hdf5_hl.lib') -Default 'hdf5_hl-static.lib'
-          echo "HDF5_LIB=$hdf5Lib" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "HDF5_HL_LIB=$hdf5HlLib" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Configure (OpenMP, Windows)
+        run: >
+          cmake -S repos/kspaceFirstOrder-openmp-windows -B build/openmp-windows
+          -G "Ninja"
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}\scripts\buildsystems\vcpkg.cmake
+          -DUSE_MKL=OFF
+          -DENABLE_OPENMP=ON
+          -DARCH=avx2
 
       - name: Build (OpenMP, Windows)
+        run: cmake --build build/openmp-windows --parallel
+
+      - name: Smoke test (OpenMP Windows)
         shell: pwsh
-        env:
-          INCLUDE: ${{ env.VCPKG_ROOT }}\installed\x64-windows-static\include;${{ env.INCLUDE }}
-          LIB: ${{ env.VCPKG_ROOT }}\installed\x64-windows-static\lib;${{ env.VCPKG_ROOT }}\installed\x64-windows-static\lib\manual-link;${{ env.LIB }}
         run: |
-          & msbuild .\repos\kspaceFirstOrder-openmp-windows\kspaceFirstOrder-OMP.vcxproj `
-              /p:Configuration=Release /p:Platform=x64 /m
+          & ".\build\openmp-windows\kspaceFirstOrder-OMP.exe" --help | Select-Object -First 20
 
       - name: Upload artifacts (OpenMP Windows)
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.1
         with:
           name: kspaceFirstOrder-openmp-windows-windows-latest
           path: |
-            repos/kspaceFirstOrder-openmp-windows/x64/Release/kspaceFirstOrder-OMP.exe
+            build/openmp-windows/kspaceFirstOrder-OMP.exe
           if-no-files-found: error
 
       - name: Build diagnostics (OpenMP Windows)
         if: failure()
         shell: pwsh
         run: |
-          & msbuild -version || $true
+          cl.exe || $true
+          if (Test-Path 'build/openmp-windows/CMakeFiles/CMakeError.log') {
+            Write-Host '----- CMakeError.log -----'
+            Get-Content 'build/openmp-windows/CMakeFiles/CMakeError.log'
+          }
+          if (Test-Path 'build/openmp-windows/CMakeFiles/CMakeOutput.log') {
+            Write-Host '----- CMakeOutput.log -----'
+            Get-Content 'build/openmp-windows/CMakeFiles/CMakeOutput.log'
+          }
