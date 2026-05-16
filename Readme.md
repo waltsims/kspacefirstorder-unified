@@ -5,7 +5,7 @@ of propagating acoustic waves in 1D, 2D, or 3D. The toolbox has a wide range of
 functionality, but at its heart is an advanced numerical model that can account
 for both linear or nonlinear wave propagation, an arbitrary distribution of
 heterogeneous material parameters, and power law acoustic absorption.
-See k-Wave website(http://www.k-wave.org).
+See the k-Wave website (http://www.k-wave.org).
 
 This project is a part of the k-Wave toolbox accelerating 2D/3D simulations
 using an optimized CUDA/C++ implementation to run small to moderate grid sizes

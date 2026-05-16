@@ -74,6 +74,7 @@
 #define HDF5_FILE_HEADER_H
 
 #include <map>
+#include <string>
 
 #include <Hdf5/Hdf5File.h>
 #include <Utils/DimensionSizes.h>
