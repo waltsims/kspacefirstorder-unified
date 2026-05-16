@@ -7,6 +7,13 @@ on:
   pull_request:
     branches: [ main, ci-multi-platform-experiments ]
 
+# Single source of truth for the vcpkg pin used by every job that
+# needs vcpkg (currently windows-cuda and windows-openmp). Bumping
+# the pin only requires editing this one line; both Windows jobs
+# inherit the value automatically.
+env:
+  VCPKG_COMMIT: 271a5b8850aa50f9a40269cbf3cf414b36e333d6
+
 jobs:
   linux-openmp:
     runs-on: ubuntu-latest
@@ -183,8 +190,6 @@ jobs:
 
   windows-cuda:
     runs-on: windows-latest
-    env:
-      VCPKG_COMMIT: 271a5b8850aa50f9a40269cbf3cf414b36e333d6
     strategy:
       fail-fast: false
       matrix:
@@ -297,7 +302,6 @@ jobs:
     runs-on: windows-latest
     env:
       VCPKG_ROOT: C:\vcpkg
-      VCPKG_COMMIT: 271a5b8850aa50f9a40269cbf3cf414b36e333d6
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v5
