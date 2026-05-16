@@ -46,7 +46,14 @@ jobs:
           set -euxo pipefail
           cd build/openmp-linux
           chmod +x ./kspaceFirstOrder-OMP
-          LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial:${LD_LIBRARY_PATH:-}" ./kspaceFirstOrder-OMP --help | head -n 40
+          # Write --help to a file first, then take the first 40 lines for the
+          # log. If we piped directly into `head -n 40`, head would close the
+          # pipe after reading the 40th line; the binary would get SIGPIPE on
+          # its next write and exit 141, which `pipefail` would then promote
+          # to a smoke-test failure even though --help worked.
+          LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial:${LD_LIBRARY_PATH:-}" \
+            ./kspaceFirstOrder-OMP --help > /tmp/kspaceFirstOrder-OMP-help.txt
+          head -n 40 /tmp/kspaceFirstOrder-OMP-help.txt
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4.3.1
