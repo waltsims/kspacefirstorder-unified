@@ -28,6 +28,44 @@ if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
     set(CMAKE_CUDA_ARCHITECTURES native)
 endif()
 
+# Pre-enable_language pre-filter: probe nvcc version BEFORE
+# enable_language(CUDA) so we can drop architectures the installed
+# toolchain doesn't support. Otherwise the test compile done inside
+# enable_language() fails with "Unsupported gpu architecture" before
+# CMAKE_CUDA_COMPILER_VERSION is set and our post-enable filter (in
+# update_cmake_cuda_architectures below) gets a chance to run.
+#
+# Currently this only needs to handle the Blackwell archs (100, 120)
+# which require nvcc >= 12.8; older arches in our default list
+# (75..90a) work on every nvcc the project supports.
+if(NOT CMAKE_CUDA_ARCHITECTURES STREQUAL "native")
+    if(NOT DEFINED CMAKE_CUDA_COMPILER)
+        find_program(_probe_nvcc nvcc
+            PATHS ENV CUDAToolkit_ROOT ENV CUDA_HOME ENV CUDA_PATH
+            PATH_SUFFIXES bin)
+    else()
+        set(_probe_nvcc "${CMAKE_CUDA_COMPILER}")
+    endif()
+    if(_probe_nvcc)
+        execute_process(
+            COMMAND "${_probe_nvcc}" --version
+            OUTPUT_VARIABLE _probe_nvcc_version_output
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET)
+        if(_probe_nvcc_version_output MATCHES "release ([0-9]+)\\.([0-9]+)")
+            math(EXPR _probe_cuda_num "${CMAKE_MATCH_1} * 100 + ${CMAKE_MATCH_2}")
+            if(_probe_cuda_num LESS 1208)
+                foreach(_blackwell_arch IN ITEMS "100" "120")
+                    if("${_blackwell_arch}" IN_LIST CMAKE_CUDA_ARCHITECTURES)
+                        message(STATUS "Pre-filter: dropping sm_${_blackwell_arch} (Blackwell) — nvcc ${CMAKE_MATCH_1}.${CMAKE_MATCH_2} predates 12.8")
+                        list(REMOVE_ITEM CMAKE_CUDA_ARCHITECTURES "${_blackwell_arch}")
+                    endif()
+                endforeach()
+            endif()
+        endif()
+    endif()
+endif()
+
 # Enable CUDA language
 # Generates CMAKE_CUDA_COMPILER_ID and CMAKE_CUDA_COMPILER_VERSION needed below
 enable_language(CUDA)
