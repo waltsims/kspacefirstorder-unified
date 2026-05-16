@@ -109,7 +109,10 @@ GIT_HASH       = -D__KWAVE_GIT_HASH__=\"468dc31c2842a7df5f2a07c3a13c16c9b0b2b770
 # Replace tabs by spaces
 .RECIPEPREFIX += 
 
-# What CUDA GPU architectures to include in the binary
+# What CUDA GPU architectures to include in the binary.
+# Note: this Makefile is the legacy build path; the unified-CI build
+# uses the .vcxproj directly via MSBuild. Keep the two arch lists in
+# sync if you change one.
 CUDA_ARCH = --generate-code arch=compute_30,code=sm_30 \
             --generate-code arch=compute_32,code=sm_32 \
             --generate-code arch=compute_35,code=sm_35 \
@@ -122,7 +125,16 @@ CUDA_ARCH = --generate-code arch=compute_30,code=sm_30 \
             --generate-code arch=compute_62,code=sm_62 \
             --generate-code arch=compute_70,code=sm_70 \
             --generate-code arch=compute_72,code=sm_72 \
-            --generate-code arch=compute_75,code=sm_75
+            --generate-code arch=compute_75,code=sm_75 \
+            --generate-code arch=compute_80,code=sm_80 \
+            --generate-code arch=compute_86,code=sm_86 \
+            --generate-code arch=compute_87,code=sm_87 \
+            --generate-code arch=compute_89,code=sm_89 \
+            --generate-code arch=compute_90,code=sm_90 \
+            --generate-code arch=compute_90a,code=sm_90a \
+            --generate-code arch=compute_100,code=sm_100 \
+            --generate-code arch=compute_120,code=sm_120 \
+            --generate-code arch=compute_120,code=compute_120
 
 # What libraries to link and how
 ifeq ($(LINKING), STATIC)
