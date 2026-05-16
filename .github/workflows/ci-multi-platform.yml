@@ -45,8 +45,8 @@ jobs:
         run: |
           set -euxo pipefail
           cd build/openmp-linux
-          chmod +x ./kspaceFirstOrder-OMP || true
-          LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial:${LD_LIBRARY_PATH:-}" ./kspaceFirstOrder-OMP --help | head -n 40 || true
+          chmod +x ./kspaceFirstOrder-OMP
+          LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial:${LD_LIBRARY_PATH:-}" ./kspaceFirstOrder-OMP --help | head -n 40
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4.3.1
