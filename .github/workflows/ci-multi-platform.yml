@@ -6,6 +6,9 @@ on:
     branches: [ main, develop, ci-multi-platform-experiments ]
   pull_request:
     branches: [ main, ci-multi-platform-experiments ]
+  # Make the workflow callable from release-on-tag.yml so the build matrix
+  # isn't duplicated. No effect on push/PR-triggered runs.
+  workflow_call: {}
 
 # Single source of truth for the vcpkg pin used by every job that
 # needs vcpkg (currently windows-cuda and windows-openmp). Bumping
