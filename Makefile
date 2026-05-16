@@ -13,7 +13,7 @@ OPENMP = -Xpreprocessor -fopenmp
 CPU_FLAGS = -m64 -mcpu=apple-m1 -mtune=native
 
 # Use maximum optimization
-OPT = -O3 -ffast-math -fassociative-math 
+OPT = -O3 -fno-fast-math -ffp-contract=fast -fno-finite-math-only -fno-strict-aliasing 
 
 # Debug flags
 DEBUG = -g -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize
