@@ -23,11 +23,12 @@ MAX_GLIBC="2.35"
 
 # Library substrings that must NOT appear as dynamic deps. If any does, the
 # build is dynamically linking something we explicitly ship statically.
+# HDF5 (+ its szip/zlib transitive deps) is intentionally NOT on this list:
+# distros ship a stable libhdf5_serial.so.103 ABI, and static HDF5 drags in
+# transitive symbols that need explicit link-order treatment. The CUDA
+# runtime and FFTW are the actual sources of the v1.4.0 regression.
 BANNED_DEPS_COMMON=(
   "libstdc++"
-  "libhdf5"
-  "libsz"
-  "libaec"
 )
 BANNED_DEPS_CUDA=(
   "libcudart"
