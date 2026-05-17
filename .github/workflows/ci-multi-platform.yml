@@ -19,7 +19,11 @@ env:
 
 jobs:
   linux-openmp:
-    runs-on: ubuntu-latest
+    # Pin to Ubuntu 22.04 (glibc 2.35) so the binary remains compatible with
+    # Ubuntu 22.04 LTS, Debian 12, RHEL 9, Colab, and similar — a bump to
+    # ubuntu-latest (24.04, glibc 2.39) broke v1.4.0 for these targets.
+    # The check-linux-binary-deps.sh step below catches future regressions.
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v5
@@ -54,9 +58,11 @@ jobs:
           # pipe after reading the 40th line; the binary would get SIGPIPE on
           # its next write and exit 141, which `pipefail` would then promote
           # to a smoke-test failure even though --help worked.
-          LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial:${LD_LIBRARY_PATH:-}" \
-            ./kspaceFirstOrder-OMP --help > /tmp/kspaceFirstOrder-OMP-help.txt
+          ./kspaceFirstOrder-OMP --help > /tmp/kspaceFirstOrder-OMP-help.txt
           head -n 40 /tmp/kspaceFirstOrder-OMP-help.txt
+
+      - name: Verify static linkage (OpenMP, Linux)
+        run: scripts/check-linux-binary-deps.sh build/openmp-linux/kspaceFirstOrder-OMP omp
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4.3.1
@@ -83,7 +89,8 @@ jobs:
           echo "HDF5 libs:"; ldconfig -p | grep -i hdf5 || true
 
   linux-cuda:
-    runs-on: ubuntu-latest
+    # Pin to Ubuntu 22.04 (glibc 2.35); see linux-openmp above for rationale.
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -133,6 +140,9 @@ jobs:
         run: |
           set -euxo pipefail
           cmake --build build/cuda-linux --parallel "$(nproc)"
+
+      - name: Verify static linkage (CUDA, Linux)
+        run: scripts/check-linux-binary-deps.sh build/cuda-linux/kspaceFirstOrder-CUDA cuda
 
       - name: Upload artifacts (CUDA Linux)
         uses: actions/upload-artifact@v4.3.1
@@ -350,6 +360,33 @@ jobs:
       - name: Build (OpenMP, Windows)
         run: cmake --build build/openmp-windows --parallel
 
+      - name: Collect runtime DLLs (OpenMP Windows)
+        # The v1.4 OMP build switched to MSVC + VCOMP + FFTW (vcpkg), so the
+        # exe depends on FFTW + HDF5 (+ transitive deps) from vcpkg and on
+        # MSVC's VCRUNTIME140_1.dll + VCOMP140.dll from the Visual C++
+        # redistributable. Ship them all alongside the .exe so users on a
+        # clean Windows install don't get STATUS_DLL_NOT_FOUND.
+        shell: pwsh
+        run: |
+          $dest = "build/openmp-windows"
+          # vcpkg-installed runtime DLLs (HDF5 + zlib + szip + fftw3f + transitives)
+          $vcpkgBin = "build/openmp-windows/vcpkg_installed/x64-windows/bin"
+          if (Test-Path $vcpkgBin) {
+            Copy-Item "$vcpkgBin\*.dll" $dest -Force -Verbose
+          } else {
+            throw "vcpkg_installed bin not found at $vcpkgBin"
+          }
+          # MSVC redistributable DLLs (CRT + OpenMP)
+          $redist = $env:VCToolsRedistDir
+          if (-not $redist) { throw "VCToolsRedistDir not set; MSVC env not activated" }
+          foreach ($pattern in @("Microsoft.*.CRT", "Microsoft.*.OPENMP")) {
+            Get-ChildItem -Path "$redist\x64" -Filter $pattern -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+              Copy-Item "$($_.FullName)\*.dll" $dest -Force -Verbose
+            }
+          }
+          Write-Host "=== Final artifact contents ==="
+          Get-ChildItem "$dest\*.exe", "$dest\*.dll" | Select-Object Name, Length
+
       - name: Smoke test (OpenMP Windows)
         shell: pwsh
         run: |
@@ -362,6 +399,7 @@ jobs:
           name: kspaceFirstOrder-openmp-windows-windows-latest
           path: |
             build/openmp-windows/kspaceFirstOrder-OMP.exe
+            build/openmp-windows/*.dll
           if-no-files-found: error
 
       - name: Build diagnostics (OpenMP Windows)
