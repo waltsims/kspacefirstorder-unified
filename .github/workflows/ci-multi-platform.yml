@@ -19,7 +19,11 @@ env:
 
 jobs:
   linux-openmp:
-    runs-on: ubuntu-latest
+    # Pin to Ubuntu 22.04 (glibc 2.35) so the binary remains compatible with
+    # Ubuntu 22.04 LTS, Debian 12, RHEL 9, Colab, and similar — a bump to
+    # ubuntu-latest (24.04, glibc 2.39) broke v1.4.0 for these targets.
+    # The check-linux-binary-deps.sh step below catches future regressions.
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v5
@@ -54,9 +58,11 @@ jobs:
           # pipe after reading the 40th line; the binary would get SIGPIPE on
           # its next write and exit 141, which `pipefail` would then promote
           # to a smoke-test failure even though --help worked.
-          LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/hdf5/serial:${LD_LIBRARY_PATH:-}" \
-            ./kspaceFirstOrder-OMP --help > /tmp/kspaceFirstOrder-OMP-help.txt
+          ./kspaceFirstOrder-OMP --help > /tmp/kspaceFirstOrder-OMP-help.txt
           head -n 40 /tmp/kspaceFirstOrder-OMP-help.txt
+
+      - name: Verify static linkage (OpenMP, Linux)
+        run: scripts/check-linux-binary-deps.sh build/openmp-linux/kspaceFirstOrder-OMP omp
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4.3.1
@@ -83,7 +89,8 @@ jobs:
           echo "HDF5 libs:"; ldconfig -p | grep -i hdf5 || true
 
   linux-cuda:
-    runs-on: ubuntu-latest
+    # Pin to Ubuntu 22.04 (glibc 2.35); see linux-openmp above for rationale.
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -133,6 +140,9 @@ jobs:
         run: |
           set -euxo pipefail
           cmake --build build/cuda-linux --parallel "$(nproc)"
+
+      - name: Verify static linkage (CUDA, Linux)
+        run: scripts/check-linux-binary-deps.sh build/cuda-linux/kspaceFirstOrder-CUDA cuda
 
       - name: Upload artifacts (CUDA Linux)
         uses: actions/upload-artifact@v4.3.1
