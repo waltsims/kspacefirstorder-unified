@@ -360,6 +360,33 @@ jobs:
       - name: Build (OpenMP, Windows)
         run: cmake --build build/openmp-windows --parallel
 
+      - name: Collect runtime DLLs (OpenMP Windows)
+        # The v1.4 OMP build switched to MSVC + VCOMP + FFTW (vcpkg), so the
+        # exe depends on FFTW + HDF5 (+ transitive deps) from vcpkg and on
+        # MSVC's VCRUNTIME140_1.dll + VCOMP140.dll from the Visual C++
+        # redistributable. Ship them all alongside the .exe so users on a
+        # clean Windows install don't get STATUS_DLL_NOT_FOUND.
+        shell: pwsh
+        run: |
+          $dest = "build/openmp-windows"
+          # vcpkg-installed runtime DLLs (HDF5 + zlib + szip + fftw3f + transitives)
+          $vcpkgBin = "build/openmp-windows/vcpkg_installed/x64-windows/bin"
+          if (Test-Path $vcpkgBin) {
+            Copy-Item "$vcpkgBin\*.dll" $dest -Force -Verbose
+          } else {
+            throw "vcpkg_installed bin not found at $vcpkgBin"
+          }
+          # MSVC redistributable DLLs (CRT + OpenMP)
+          $redist = $env:VCToolsRedistDir
+          if (-not $redist) { throw "VCToolsRedistDir not set; MSVC env not activated" }
+          foreach ($pattern in @("Microsoft.*.CRT", "Microsoft.*.OPENMP")) {
+            Get-ChildItem -Path "$redist\x64" -Filter $pattern -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+              Copy-Item "$($_.FullName)\*.dll" $dest -Force -Verbose
+            }
+          }
+          Write-Host "=== Final artifact contents ==="
+          Get-ChildItem "$dest\*.exe", "$dest\*.dll" | Select-Object Name, Length
+
       - name: Smoke test (OpenMP Windows)
         shell: pwsh
         run: |
@@ -372,6 +399,7 @@ jobs:
           name: kspaceFirstOrder-openmp-windows-windows-latest
           path: |
             build/openmp-windows/kspaceFirstOrder-OMP.exe
+            build/openmp-windows/*.dll
           if-no-files-found: error
 
       - name: Build diagnostics (OpenMP Windows)
