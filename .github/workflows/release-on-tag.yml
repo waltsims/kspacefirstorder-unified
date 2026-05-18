@@ -1,35 +1,29 @@
-name: Release binaries to per-repo releases (manual)
+name: Release unified binaries (manual)
 
-# Triggered manually via the GitHub Actions UI ("Run workflow"). Asks
-# the operator for a version string (e.g. v1.4.0), then runs the
-# existing multi-platform CI as a reusable workflow, downloads each
-# artifact, and uploads it to a release of that version name on the
-# corresponding per-platform binary repository:
+# Publishes a single GitHub release on this repo containing all five
+# platform/backend binaries (plus Windows runtime DLLs). Triggered
+# manually via the Actions UI ("Run workflow"): operator supplies a
+# version string (e.g. v1.4.2) and toggles dry_run.
 #
-#   kspaceFirstOrder-cuda-linux-13.0.0          -> kspaceFirstOrder-CUDA-linux
-#   kspaceFirstOrder-cuda-windows-13.0.0        -> kspaceFirstOrder-CUDA-windows
-#   kspaceFirstOrder-openmp-linux-ubuntu-latest -> kspaceFirstOrder-OMP-linux
-#   kspaceFirstOrder-openmp-windows-windows-latest -> kspaceFirstOrder-OMP-windows
-#   kspaceFirstOrder-openmp-darwin-macos-latest -> k-wave-omp-darwin
+# This replaces the prior per-mirror release flow (unified#13). All
+# artifacts now live on one release tag on this repo — one SHA, one
+# build, one set of platform-suffixed assets — and k-wave-python
+# (waltsims/k-wave-python#738) points its URL_DICT at this single
+# release URL instead of five separate mirror URLs.
 #
-# === REQUIRED ONE-TIME SETUP ===
-# A repository secret `BINARY_RELEASE_TOKEN` must exist with `contents:write`
-# permission on all five target repositories. The default `GITHUB_TOKEN`
-# is scoped to this repo only and cannot create releases on the others.
-#
-# Recommended: a fine-grained PAT or a GitHub App installation token
-# scoped to exactly those five repos. The workflow will fail loudly if
-# the secret is missing or under-scoped.
+# Permissions: GITHUB_TOKEN's `contents: write` suffices since the
+# release lives on this repo. The prior BINARY_RELEASE_TOKEN PAT is
+# no longer needed.
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version tag (e.g. v1.4.0). Must start with v.'
+        description: 'Release version tag (e.g. v1.4.2). Must start with v.'
         required: true
         type: string
       dry_run:
-        description: 'Dry run: build everything but do not actually publish releases.'
+        description: 'Dry run: build everything but do not actually publish the release.'
         required: false
         type: boolean
         default: true
@@ -44,79 +38,76 @@ jobs:
   publish:
     needs: build
     runs-on: ubuntu-latest
+    # Job-scoped write so the reusable build job (third-party actions,
+    # external clones) inherits read-only.
+    permissions:
+      contents: write
     steps:
-      - name: Validate version input
+      - name: Parse version input
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-            echo "::error::Version must look like vX.Y.Z (got '$VERSION')"
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Version must look like vX.Y.Z or vX.Y.Z-suffix (got '$VERSION')"
             exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # Any -suffix → prerelease (rc1, beta, 1, alpha.2, etc.)
+          [[ "$VERSION" == *-* ]] && echo "prerelease=true" >> "$GITHUB_OUTPUT" \
+                                  || echo "prerelease=false" >> "$GITHUB_OUTPUT"
         id: ver
 
-      - name: Download all artifacts from the build run
+      - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: Verify release token is configured
-        env:
-          GH_TOKEN: ${{ secrets.BINARY_RELEASE_TOKEN }}
-        run: |
-          if [ -z "${GH_TOKEN:-}" ]; then
-            echo "::error::BINARY_RELEASE_TOKEN secret is not set. See workflow header for setup instructions."
-            exit 1
-          fi
-
-      - name: Upload to per-repo releases
-        env:
-          GH_TOKEN: ${{ secrets.BINARY_RELEASE_TOKEN }}
-          VERSION: ${{ steps.ver.outputs.version }}
-          DRY_RUN: ${{ inputs.dry_run }}
+      - name: Stage assets with platform-suffixed names
         run: |
           set -euxo pipefail
+          mkdir -p stage
 
-          if [ "$DRY_RUN" = "true" ]; then
-            echo "::notice::Dry run — listing artifacts that would be published, not creating releases."
-            ls -laR artifacts || true
-            echo "::notice::Would create release '$VERSION' on each of:"
-            echo "  waltsims/kspaceFirstOrder-CUDA-linux"
-            echo "  waltsims/kspaceFirstOrder-CUDA-windows"
-            echo "  waltsims/kspaceFirstOrder-OMP-linux"
-            echo "  waltsims/kspaceFirstOrder-OMP-windows"
-            echo "  waltsims/k-wave-omp-darwin"
-            exit 0
+          cp artifacts/kspaceFirstOrder-cuda-linux-13.0.0/kspaceFirstOrder-CUDA \
+             stage/kspaceFirstOrder-CUDA-linux
+          cp artifacts/kspaceFirstOrder-openmp-linux-ubuntu-latest/kspaceFirstOrder-OMP \
+             stage/kspaceFirstOrder-OMP-linux
+          cp artifacts/kspaceFirstOrder-openmp-darwin-macos-latest/kspaceFirstOrder-OMP \
+             stage/kspaceFirstOrder-OMP-darwin
+          cp artifacts/kspaceFirstOrder-cuda-windows-13.0.0/kspaceFirstOrder-CUDA.exe \
+             stage/kspaceFirstOrder-CUDA-windows.exe
+          cp artifacts/kspaceFirstOrder-openmp-windows-windows-latest/kspaceFirstOrder-OMP.exe \
+             stage/kspaceFirstOrder-OMP-windows.exe
+
+          # Windows runtime DLLs ship from the OMP build only; both backends
+          # consume them since k-wave-python places both .exe files in the
+          # same kwave/bin/windows/ directory.
+          cp artifacts/kspaceFirstOrder-openmp-windows-windows-latest/*.dll stage/
+
+          ls -la stage/
+
+      - name: Dry run summary
+        if: ${{ inputs.dry_run }}
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          echo "::notice::Dry run — would create release '$VERSION' on this repo with the following assets:"
+          ls -la stage/
+          echo "::notice::Re-run with dry_run=false to actually publish."
+
+      - name: Publish release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          PRERELEASE: ${{ steps.ver.outputs.prerelease }}
+        run: |
+          set -euxo pipefail
+          if ! gh release view "$VERSION" >/dev/null 2>&1; then
+            PRERELEASE_FLAG=()
+            [[ "$PRERELEASE" == "true" ]] && PRERELEASE_FLAG=(--prerelease)
+            gh release create "$VERSION" \
+              --title "$VERSION" \
+              "${PRERELEASE_FLAG[@]}" \
+              --notes "Unified binaries for kspaceFirstOrder backends across all supported platforms. Built from ${GITHUB_SHA::8}."
           fi
-
-          # Artifact dir -> "<repo>:<glob to upload>"
-          declare -A REPO=(
-            [kspaceFirstOrder-cuda-linux-13.0.0]="waltsims/kspaceFirstOrder-CUDA-linux:kspaceFirstOrder-CUDA"
-            [kspaceFirstOrder-cuda-windows-13.0.0]="waltsims/kspaceFirstOrder-CUDA-windows:*"
-            [kspaceFirstOrder-openmp-linux-ubuntu-latest]="waltsims/kspaceFirstOrder-OMP-linux:*"
-            [kspaceFirstOrder-openmp-windows-windows-latest]="waltsims/kspaceFirstOrder-OMP-windows:*"
-            [kspaceFirstOrder-openmp-darwin-macos-latest]="waltsims/k-wave-omp-darwin:*"
-          )
-
-          for dir in "${!REPO[@]}"; do
-            spec="${REPO[$dir]}"
-            repo="${spec%%:*}"
-            glob="${spec#*:}"
-
-            if [ ! -d "artifacts/$dir" ]; then
-              echo "::warning::Missing artifact dir artifacts/$dir; skipping $repo"
-              continue
-            fi
-
-            # Create the release on the target repo if it doesn't already exist
-            if ! gh release view "$VERSION" -R "$repo" >/dev/null 2>&1; then
-              gh release create "$VERSION" -R "$repo" \
-                --title "$VERSION" \
-                --notes "Auto-published from kspacefirstorder-unified@${GITHUB_SHA::8}."
-            fi
-
-            # Upload assets (overwrite if rerunning the workflow)
-            gh release upload "$VERSION" -R "$repo" --clobber \
-              artifacts/"$dir"/$glob
-          done
+          gh release upload "$VERSION" --clobber stage/*
