@@ -11,20 +11,29 @@ This project builds on the great work of the original k-Wave authors: B. E. Tree
 
 This project is a unified C++ implementation of the k-Wave toolbox that accelerates 2D/3D simulations using optimized implementations.
 
+## Repository layout
+
+All five platform/backend variants live in-tree under `repos/`:
+
+- `repos/kspaceFirstOrder-cuda-linux/` — Linux CUDA
+- `repos/kspaceFirstOrder-cuda-windows/` — Windows CUDA
+- `repos/kspaceFirstOrder-openmp-linux/` — Linux OpenMP
+- `repos/kspaceFirstOrder-openmp-windows/` — Windows OpenMP
+- `repos/kspaceFirstOrder-openmp-darwin/` — macOS OpenMP
+
+Each used to be a separate mirror repo, consolidated here as `git subtree`s (with history preserved). See [`plans/ROADMAP.md`](plans/ROADMAP.md) for what's next.
+
 ## Building
+
+All five variants build via [`.github/workflows/ci-multi-platform.yml`](.github/workflows/ci-multi-platform.yml) — that workflow is the canonical reference for the exact CMake invocations, dependency setup, and platform pinning per build.
 
 ### Windows (OpenMP via CMake + vcpkg)
 
-The Windows OpenMP implementation now ships with a CMake build that mirrors the upstream `kspaceFirstOrder-OMP-windows` repository and is exercised by the `windows-openmp` job in `.github/workflows/ci-multi-platform.yml`. To reproduce the build locally:
+Worked example. Reproduces the CI `windows-openmp` job locally:
 
 1. Install Visual Studio 2022 (Desktop development with C++ workload), [Ninja](https://ninja-build.org/), and bootstrap [vcpkg](https://github.com/microsoft/vcpkg) (for example into `C:\vcpkg`).
-2. Update submodules so the Windows sources and manifest (`vcpkg.json`) are present:
 
-   ```powershell
-   git submodule update --init --recursive
-   ```
-
-3. Configure the build, pointing CMake at the Windows OpenMP tree and the vcpkg toolchain:
+2. Configure the build, pointing CMake at the Windows OpenMP tree and the vcpkg toolchain:
 
    ```powershell
    cmake -S repos/kspaceFirstOrder-openmp-windows -B build/openmp-windows `
@@ -38,7 +47,7 @@ The Windows OpenMP implementation now ships with a CMake build that mirrors the 
 
    The manifest automatically pulls FFTW, HDF5 (with zlib + szip), and zlib through vcpkg—no manual `vcpkg install` commands are required.
 
-4. Build the executable:
+3. Build the executable:
 
    ```powershell
    cmake --build build/openmp-windows --config Release --parallel
