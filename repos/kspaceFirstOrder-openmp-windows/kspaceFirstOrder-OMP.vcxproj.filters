@@ -1,0 +1,177 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Containers\MatrixContainer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Containers\OutputStreamContainer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GetoptWin64\Getopt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Hdf5\Hdf5File.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Hdf5\Hdf5FileHeader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="KSpaceSolver\KSpaceFirstOrderSolver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Logger\Logger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MatrixClasses\BaseFloatMatrix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MatrixClasses\BaseIndexMatrix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MatrixClasses\ComplexMatrix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MatrixClasses\FftwComplexMatrix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MatrixClasses\IndexMatrix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MatrixClasses\RealMatrix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OutputStreams\BaseOutputStream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OutputStreams\CuboidOutputStream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OutputStreams\IndexOutputStream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OutputStreams\WholeDomainOutputStream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Parameters\CommandLineParameters.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Parameters\Parameters.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MatrixClasses\FftwRealMatrix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Containers\MatrixContainer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\MatrixRecord.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\OutputStreamContainer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GetoptWin64\Getopt.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Hdf5\Hdf5File.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Hdf5\Hdf5FileHeader.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KSpaceSolver\KSpaceFirstOrderSolver.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger\ErrorMessages.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger\ErrorMessagesLinux.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger\ErrorMessagesWindows.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger\Logger.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger\OutputMessages.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger\OutputMessagesLinux.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger\OutputMessagesWindows.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MatrixClasses\BaseFloatMatrix.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MatrixClasses\BaseIndexMatrix.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MatrixClasses\BaseMatrix.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MatrixClasses\ComplexMatrix.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MatrixClasses\FftwComplexMatrix.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MatrixClasses\IndexMatrix.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MatrixClasses\RealMatrix.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OutputStreams\BaseOutputStream.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OutputStreams\CuboidOutputStream.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OutputStreams\IndexOutputStream.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OutputStreams\WholeDomainOutputStream.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Parameters\CommandLineParameters.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Parameters\Parameters.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\DimensionSizes.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\MatrixNames.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\TimeMeasure.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MatrixClasses\FftwRealMatrix.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
