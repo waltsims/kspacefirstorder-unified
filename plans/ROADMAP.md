@@ -35,11 +35,42 @@ After the consolidation lands, `repos/<five names>/` is a working but ugly layou
 
 Defer until release flow is proven and the Windows DLL story is resolved — both touch `cmake/SetupCUDA.cmake` and per-platform configure paths, so churning the directory layout in parallel would conflict.
 
-### Long-horizon: shared core library + adapters
+### Long-horizon: shared core, dual interface (CLI + nanobind), wheel distribution
 
-The endpoint described in archived [`07-unification-roadmap.md`](arxiv/07-unification-roadmap.md): a single core C++ library housing common simulation logic (Containers, KSpaceSolver, MatrixClasses, Logger, OutputStreams, Parameters), with thin platform/accelerator adapters (OpenMP, CUDA) plugging into it. Today the duplication across `repos/kspaceFirstOrder-cuda-{linux,windows}/` is ~95% and across the OpenMP triple is similar — almost all of it ready to deduplicate once the path refactor above creates the directory shape.
+End state: a single C++ core library (Containers, KSpaceSolver, MatrixClasses, Logger, OutputStreams, Parameters — refactored to be I/O-agnostic) with two adapters plugging in:
 
-Tasks at that point: CMakePresets.json, clang-tidy/clang-format targets, CPack packaging, GoogleTest/Catch2 + CTest. None blocking.
+- **`kspaceFirstOrder-CUDA` adapter** — cuFFT, CUDA kernels
+- **`kspaceFirstOrder-OMP` adapter** — FFTW, OpenMP loops
+
+And two consumers of that core:
+
+- **`cli/`** — `main()` + HDF5 I/O. Existing standalone binary for MATLAB / k-wave-cupy / HPC batch users. The legacy contract stays unchanged.
+- **`python/`** — nanobind module. Pass NumPy views in, get NumPy arrays back. No HDF5 round-trip, no subprocess fork, no per-platform binary download.
+
+Building the adapters along the **backend axis** (CUDA pair → `kspace-cuda/`, OMP triple → `kspace-openmp/`, then both → core+adapter split) is plan-08's direction — same as the path refactor above. Collapsing along the platform axis (Linux pair → "linux", etc.) is the wrong axis: within a backend the C++ source is ~95% shared across platforms (only build-glue differs), but across backends within a platform it's ~30% at best (different solvers, cuFFT vs FFTW, different memory model).
+
+#### Strategic payoff of the nanobind path
+
+k-wave-python ships as Python wheels with the C++ adapter baked in (`manylinux2014` × `macosx_arm64` × `win_amd64`, ~6 wheels total counting `[cuda]` extras). Three pain points collapse in one move:
+
+1. **Binary-download dance disappears.** `kwave/__init__.py` (today ~250 lines of platform-specific URL/hash/exec-bit logic) shrinks to ~10 lines. No `BINARY_VERSION` pin, no `URL_DICT`, no `WINDOWS_DLLS`, no `_ensure_executable` self-heal.
+2. **HDF5 ABI saga stops being a thing.** The macOS `libhdf5.310 → .320` break that bit v0.6.2 only mattered because the binary linked against system HDF5 and users had a different version. Wheel builds link statically or via the manylinux toolchain (audited with `auditwheel repair`). End of that bug class.
+3. **F-order ↔ C-order conversion** moves from `cpp_simulation._write_hdf5()` to the FFI boundary — same logic, cleaner location, fewer copies.
+
+#### Transition for `save_only=True`
+
+That mode (writes HDF5 input without running the simulation, so HPC users can submit to a queue) needs to stay. Expose an optional `dump_to_hdf5(path)` on the nanobind module, backed by the same HDF5 writer the CLI uses. `h5py` as a runtime Python dep of k-wave-python still goes away — the writing happens in C++.
+
+#### Sequencing
+
+Two execution orders are plausible:
+
+- **(A) Path refactor first** (plan-08 directory collapse), then core+adapters, then nanobind. Conservative — each step is independently shippable.
+- **(B) Core+adapters refactor and nanobind together**, since the prerequisite for nanobind is exactly the I/O-agnostic core. The user-facing payoff (wheel distribution, no HDF5 dep) is bigger and lands sooner.
+
+(B) is the right call if you can fund a multi-week refactor; (A) is right if you're shipping in slices. Either way, k-wave-python should hold off on cosmetic refactors of `kwave/__init__.py` / `cpp_simulation.py` until the nanobind story is committed — otherwise that work is throwaway.
+
+Open infrastructure tasks once the refactor lands: CMakePresets.json, clang-tidy/clang-format targets, CPack packaging (for the standalone CLI binary), GoogleTest/Catch2 + CTest, `cibuildwheel` configuration for the Python wheels.
 
 ## Quality-of-life nits (open if you care)
 
