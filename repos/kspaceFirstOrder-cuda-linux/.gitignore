@@ -1,0 +1,4 @@
+*.o
+*.swp
+kspaceFirstOrder-CUDA
+build/**

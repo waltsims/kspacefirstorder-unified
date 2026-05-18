@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Containers\MatrixContainer.cpp" />
+    <ClCompile Include="Containers\OutputStreamContainer.cpp" />
+    <ClCompile Include="GetoptWin64\Getopt.cpp" />
+    <ClCompile Include="Hdf5\Hdf5File.cpp" />
+    <ClCompile Include="Hdf5\Hdf5FileHeader.cpp" />
+    <ClCompile Include="KSpaceSolver\KSpaceFirstOrderSolver.cpp" />
+    <ClCompile Include="Logger\Logger.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="MatrixClasses\BaseFloatMatrix.cpp" />
+    <ClCompile Include="MatrixClasses\BaseIndexMatrix.cpp" />
+    <ClCompile Include="MatrixClasses\ComplexMatrix.cpp" />
+    <ClCompile Include="MatrixClasses\CufftComplexMatrix.cpp" />
+    <ClCompile Include="MatrixClasses\IndexMatrix.cpp" />
+    <ClCompile Include="MatrixClasses\RealMatrix.cpp" />
+    <ClCompile Include="OutputStreams\BaseOutputStream.cpp" />
+    <ClCompile Include="OutputStreams\CuboidOutputStream.cpp" />
+    <ClCompile Include="OutputStreams\IndexOutputStream.cpp" />
+    <ClCompile Include="OutputStreams\WholeDomainOutputStream.cpp" />
+    <ClCompile Include="Parameters\CommandLineParameters.cpp" />
+    <ClCompile Include="Parameters\CudaParameters.cpp" />
+    <ClCompile Include="Parameters\Parameters.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Containers\CudaMatrixContainer.cuh" />
+    <ClInclude Include="Containers\MatrixContainer.h" />
+    <ClInclude Include="Containers\MatrixRecord.h" />
+    <ClInclude Include="Containers\OutputStreamContainer.h" />
+    <ClInclude Include="GetoptWin64\Getopt.h" />
+    <ClInclude Include="Hdf5\Hdf5File.h" />
+    <ClInclude Include="Hdf5\Hdf5FileHeader.h" />
+    <ClInclude Include="KSpaceSolver\KSpaceFirstOrderSolver.h" />
+    <ClInclude Include="KSpaceSolver\SolverCudaKernels.cuh" />
+    <ClInclude Include="Logger\ErrorMessages.h" />
+    <ClInclude Include="Logger\ErrorMessagesLinux.h" />
+    <ClInclude Include="Logger\ErrorMessagesWindows.h" />
+    <ClInclude Include="Logger\Logger.h" />
+    <ClInclude Include="Logger\OutputMessages.h" />
+    <ClInclude Include="Logger\OutputMessagesLinux.h" />
+    <ClInclude Include="Logger\OutputMessagesWindows.h" />
+    <ClInclude Include="MatrixClasses\BaseFloatMatrix.h" />
+    <ClInclude Include="MatrixClasses\BaseIndexMatrix.h" />
+    <ClInclude Include="MatrixClasses\BaseMatrix.h" />
+    <ClInclude Include="MatrixClasses\ComplexMatrix.h" />
+    <ClInclude Include="MatrixClasses\CufftComplexMatrix.h" />
+    <ClInclude Include="MatrixClasses\IndexMatrix.h" />
+    <ClInclude Include="MatrixClasses\RealMatrix.h" />
+    <ClInclude Include="MatrixClasses\TransposeCudaKernels.cuh" />
+    <ClInclude Include="OutputStreams\BaseOutputStream.h" />
+    <ClInclude Include="OutputStreams\CuboidOutputStream.h" />
+    <ClInclude Include="OutputStreams\IndexOutputStream.h" />
+    <ClInclude Include="OutputStreams\OutputStreamsCudaKernels.cuh" />
+    <ClInclude Include="OutputStreams\WholeDomainOutputStream.h" />
+    <ClInclude Include="Parameters\CommandLineParameters.h" />
+    <ClInclude Include="Parameters\CudaDeviceConstants.cuh" />
+    <ClInclude Include="Parameters\CudaParameters.h" />
+    <ClInclude Include="Parameters\Parameters.h" />
+    <ClInclude Include="Utils\CudaUtils.cuh" />
+    <ClInclude Include="Utils\DimensionSizes.h" />
+    <ClInclude Include="Utils\MatrixNames.h" />
+    <ClInclude Include="Utils\TimeMeasure.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="Containers\CudaMatrixContainer.cu" />
+    <CudaCompile Include="KSpaceSolver\SolverCudaKernels.cu" />
+    <CudaCompile Include="MatrixClasses\TransposeCudaKernels.cu" />
+    <CudaCompile Include="OutputStreams\OutputStreamsCudaKernels.cu" />
+    <CudaCompile Include="Parameters\CudaDeviceConstants.cu" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{B040477E-5790-4F5D-B010-B7B57EE26FED}</ProjectGuid>
+    <RootNamespace>k_wave_fluid_cuda</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+    <UseOfMfc>
+    </UseOfMfc>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <PreferredCudaVCToolsVersion>14.38.33130</PreferredCudaVCToolsVersion>
+    <FallbackCudaVCToolsVersion>14.29.30133</FallbackCudaVCToolsVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <VCToolsVersion Condition="'$(VCToolsVersion)' == '' and Exists('$(VCInstallDir)Tools\\MSVC\\$(PreferredCudaVCToolsVersion)\\bin\\Hostx64\\x64\\cl.exe')">$(PreferredCudaVCToolsVersion)</VCToolsVersion>
+    <VCToolsVersion Condition="'$(VCToolsVersion)' == '' and Exists('$(VCInstallDir)Tools\\MSVC\\$(FallbackCudaVCToolsVersion)\\bin\\Hostx64\\x64\\cl.exe')">$(FallbackCudaVCToolsVersion)</VCToolsVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <CudaNvccAllowUnsupportedCompiler>
+    </CudaNvccAllowUnsupportedCompiler>
+  </PropertyGroup>
+  <Choose>
+    <When Condition="'$(VCToolsVersion)' != '' and $([MSBuild]::VersionGreaterThan('$(VCToolsVersion)', '14.39.0'))">
+      <PropertyGroup>
+        <CudaNvccAllowUnsupportedCompiler>-allow-unsupported-compiler</CudaNvccAllowUnsupportedCompiler>
+      </PropertyGroup>
+    </When>
+  </Choose>
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 13.0.props" Condition="exists('$(VCTargetsPath)\BuildCustomizations\CUDA 13.0.props')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.2.props" Condition="!exists('$(VCTargetsPath)\BuildCustomizations\CUDA 13.0.props') and exists('$(VCTargetsPath)\BuildCustomizations\CUDA 12.2.props')" />
+  </ImportGroup>
+  <!-- Fail loudly if neither CUDA version's MSBuild customizations are present.
+       Without this, both Imports above would silently skip, then later CudaCompile
+       items would fail with confusing "MSB4019: customization not found" errors. -->
+  <Target Name="VerifyCudaCustomizations" BeforeTargets="PrepareForBuild">
+    <Error Condition="!exists('$(VCTargetsPath)\BuildCustomizations\CUDA 13.0.props') and !exists('$(VCTargetsPath)\BuildCustomizations\CUDA 12.2.props')"
+           Text="Neither CUDA 13.0 nor CUDA 12.2 MSBuild customizations were found under '$(VCTargetsPath)\BuildCustomizations'. Install the CUDA Toolkit (12.2 or 13.0) and ensure 'Visual Studio Integration' is selected in the installer (or copy CUDA*.props/.targets from %CUDA_PATH%\extras\visual_studio_integration\MSBuildExtensions to that path manually)." />
+  </Target>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <!-- Resolve a vcpkg install dir from multiple sources, in order of preference:
+         1. $(VcpkgRoot)       - injected by `vcpkg integrate install` (the
+                                  recommended way; works on dev boxes that ran
+                                  the one-time integrate step)
+         2. $(VCPKG_ROOT)      - environment variable convention used by many
+                                  CI scripts (set by lukka/run-vcpkg, etc.)
+         3. $(VCPKG_INSTALLATION_ROOT) - the variable GitHub-hosted runners
+                                  expose by default for the preinstalled vcpkg
+       Resolved once here so the per-configuration paths below stay readable. -->
+  <PropertyGroup>
+    <ResolvedVcpkgRoot Condition="'$(ResolvedVcpkgRoot)' == '' and '$(VcpkgRoot)' != ''">$(VcpkgRoot)</ResolvedVcpkgRoot>
+    <ResolvedVcpkgRoot Condition="'$(ResolvedVcpkgRoot)' == '' and '$(VCPKG_ROOT)' != ''">$(VCPKG_ROOT)</ResolvedVcpkgRoot>
+    <ResolvedVcpkgRoot Condition="'$(ResolvedVcpkgRoot)' == '' and '$(VCPKG_INSTALLATION_ROOT)' != ''">$(VCPKG_INSTALLATION_ROOT)</ResolvedVcpkgRoot>
+  </PropertyGroup>
+  <Target Name="VerifyVcpkgRoot" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(ResolvedVcpkgRoot)' == ''"
+           Text="Could not locate vcpkg. Run `vcpkg integrate install` (preferred), set the VCPKG_ROOT environment variable, or rely on the GitHub-hosted-runner VCPKG_INSTALLATION_ROOT. None of those were available." />
+  </Target>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>
+    </LinkIncremental>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ResolvedVcpkgRoot)\installed\x64-windows\include;.;..\Sources</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;$(ResolvedVcpkgRoot)\installed\x64-windows\lib</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ResolvedVcpkgRoot)\installed\x64-windows\include;.;..\Sources</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;$(ResolvedVcpkgRoot)\installed\x64-windows\lib</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);__KWAVE_GIT_HASH__="b6413962eefd51c642c627d5ceff5093c7ad8da4"</PreprocessorDefinitions>
+      <FavorSizeOrSpeed>
+      </FavorSizeOrSpeed>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <LanguageStandard>
+      </LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <EnableEnhancedInstructionSet>
+      </EnableEnhancedInstructionSet>
+      <OpenMPSupport>false</OpenMPSupport>
+      <CompileAs>Default</CompileAs>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <OpenMP>GenerateParallelCode</OpenMP>
+      <CCppSupport>Cpp11Support</CCppSupport>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies);aec.lib;zlib.lib;hdf5.lib;hdf5_hl.lib;cufft.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(CudaToolkitLibDir);</AdditionalLibraryDirectories>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <PtxAsOptionV>true</PtxAsOptionV>
+      <FastMath>true</FastMath>
+      <CodeGeneration>compute_75,sm_75;compute_80,sm_80;compute_87,sm_87;compute_89,sm_89;compute_90,sm_90;compute_90a,sm_90a;</CodeGeneration>
+      <AdditionalCompilerOptions>%(AdditionalCompilerOptions) $(CudaNvccAllowUnsupportedCompiler)</AdditionalCompilerOptions>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);__KWAVE_GIT_HASH__="468dc31c2842a7df5f2a07c3a13c16c9b0b2b770"</PreprocessorDefinitions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <OpenMPSupport>false</OpenMPSupport>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies);aec.lib;zlib.lib;hdf5.lib;hdf5_hl.lib;cufft.lib</AdditionalDependencies>
+      <Version>1.3</Version>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <CodeGeneration>compute_75,sm_75;compute_80,sm_80;compute_86,sm_86;compute_87,sm_87;compute_89,sm_89;compute_90,sm_90;compute_90a,sm_90a;compute_100,sm_100;compute_120,sm_120;compute_120,compute_120;</CodeGeneration>
+      <FastMath>true</FastMath>
+      <MaxRegCount />
+      <AdditionalCompilerOptions>%(AdditionalCompilerOptions) $(CudaNvccAllowUnsupportedCompiler)</AdditionalCompilerOptions>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 13.0.targets" Condition="exists('$(VCTargetsPath)\BuildCustomizations\CUDA 13.0.targets')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.2.targets" Condition="!exists('$(VCTargetsPath)\BuildCustomizations\CUDA 13.0.targets') and exists('$(VCTargetsPath)\BuildCustomizations\CUDA 12.2.targets')" />
+  </ImportGroup>
+</Project>
