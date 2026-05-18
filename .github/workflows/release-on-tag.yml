@@ -29,7 +29,7 @@ on:
         default: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -38,6 +38,11 @@ jobs:
   publish:
     needs: build
     runs-on: ubuntu-latest
+    # contents:write scoped to this job only so the reusable build
+    # workflow (which runs third-party actions and external clones)
+    # inherits only read access.
+    permissions:
+      contents: write
     steps:
       - name: Validate version input
         env:
@@ -100,8 +105,13 @@ jobs:
         run: |
           set -euxo pipefail
           if ! gh release view "$VERSION" >/dev/null 2>&1; then
+            # Mark vX.Y.Z-rcN / -betaN / etc. as prerelease so it doesn't
+            # show up as "Latest" on the releases page.
+            PRERELEASE_FLAG=()
+            [[ "$VERSION" =~ -[a-zA-Z] ]] && PRERELEASE_FLAG=(--prerelease)
             gh release create "$VERSION" \
               --title "$VERSION" \
+              "${PRERELEASE_FLAG[@]}" \
               --notes "Unified binaries for kspaceFirstOrder backends across all supported platforms. Built from ${GITHUB_SHA::8}."
           fi
           gh release upload "$VERSION" --clobber stage/*
