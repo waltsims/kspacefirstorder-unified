@@ -25,10 +25,9 @@ jobs:
     # The check-linux-binary-deps.sh step below catches future regressions.
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout (with submodules)
+      - name: Checkout
         uses: actions/checkout@v5
         with:
-          submodules: true
           fetch-depth: 0
 
       - name: Install system dependencies (Linux)
@@ -96,10 +95,9 @@ jobs:
       matrix:
         cuda-version: ['12.2.0', '13.0.0']
     steps:
-      - name: Checkout (with submodules)
+      - name: Checkout
         uses: actions/checkout@v5
         with:
-          submodules: true
           fetch-depth: 0
 
       - name: Install system dependencies (Linux)
@@ -160,10 +158,9 @@ jobs:
   macos-openmp:
     runs-on: macos-14
     steps:
-      - name: Checkout (with submodules)
+      - name: Checkout
         uses: actions/checkout@v5
         with:
-          submodules: true
           fetch-depth: 0
 
       - name: Install dependencies (Homebrew)
@@ -215,10 +212,9 @@ jobs:
       matrix:
         cuda-version: ['13.0.0']
     steps:
-      - name: Checkout (with submodules)
+      - name: Checkout
         uses: actions/checkout@v5
         with:
-          submodules: true
           fetch-depth: 0
 
       - name: Set up MSBuild
@@ -323,10 +319,9 @@ jobs:
     env:
       VCPKG_ROOT: C:\vcpkg
     steps:
-      - name: Checkout (with submodules)
+      - name: Checkout
         uses: actions/checkout@v5
         with:
-          submodules: recursive
           fetch-depth: 0
 
       - name: Setup MSVC dev env
