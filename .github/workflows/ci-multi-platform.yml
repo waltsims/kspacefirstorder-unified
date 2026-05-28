@@ -327,7 +327,11 @@ jobs:
           if (-not $vcpkgBin) {
             throw "No vcpkg runtime bin directory found. Checked: $($vcpkgCandidates -join ', ')"
           }
-          Copy-Item "$vcpkgBin/*.dll" $dest -Force -Verbose
+          $vcpkgDlls = Get-ChildItem -Path $vcpkgBin -Filter "*.dll" -File -ErrorAction SilentlyContinue
+          if (-not $vcpkgDlls) {
+            throw "No vcpkg runtime DLLs found in $vcpkgBin"
+          }
+          $vcpkgDlls | Copy-Item -Destination $dest -Force -Verbose
 
           $redistRoot = $env:VCToolsRedistDir
           if (-not $redistRoot) {
@@ -353,33 +357,68 @@ jobs:
             $redistX64 = Join-Path $redistVersion.FullName "x64"
           }
 
-          Get-ChildItem -Path $redistX64 -Filter "Microsoft.*.CRT" -Directory -ErrorAction SilentlyContinue |
-            ForEach-Object { Copy-Item "$($_.FullName)/*.dll" $dest -Force -Verbose }
+          $crtDirs = Get-ChildItem -Path $redistX64 -Filter "Microsoft.*.CRT" -Directory -ErrorAction SilentlyContinue
+          if (-not $crtDirs) {
+            throw "No MSVC CRT redist directories found under $redistX64"
+          }
+          $crtDlls = $crtDirs | ForEach-Object {
+            Get-ChildItem -Path $_.FullName -Filter "*.dll" -File -ErrorAction SilentlyContinue
+          }
+          if (-not $crtDlls) {
+            throw "No MSVC CRT DLLs found under $redistX64"
+          }
+          $crtDlls | Copy-Item -Destination $dest -Force -Verbose
 
           if (-not $env:CUDA_PATH) {
             throw "CUDA_PATH is not set; cannot collect CUDA runtime DLLs"
           }
           $cudaBin = Join-Path $env:CUDA_PATH "bin"
           foreach ($pattern in @("cudart64_*.dll", "cufft64_*.dll")) {
-            $matches = Get-ChildItem -Path $cudaBin -Filter $pattern -File -ErrorAction SilentlyContinue
-            if (-not $matches) {
+            $cudaDlls = Get-ChildItem -Path $cudaBin -Filter $pattern -File -ErrorAction SilentlyContinue
+            if (-not $cudaDlls) {
               throw "No CUDA DLLs matched '$pattern' in $cudaBin"
             }
-            $matches | Copy-Item -Destination $dest -Force -Verbose
+            $cudaDlls | Copy-Item -Destination $dest -Force -Verbose
           }
 
           Write-Host "=== Final CUDA artifact contents ==="
           Get-ChildItem "$dest/*.exe", "$dest/*.dll" | Select-Object Name, Length
 
-      - name: Smoke test (CUDA Windows)
+      - name: Verify CUDA Windows artifact
         shell: pwsh
         run: |
-          $help = "$env:RUNNER_TEMP/kspaceFirstOrder-CUDA-help.txt"
-          & ".\build\cuda-windows\Release\kspaceFirstOrder-CUDA.exe" --help > $help
-          if ($LASTEXITCODE -ne 0) {
-            throw "CUDA --help smoke test failed with exit code $LASTEXITCODE"
+          $dest = "build/cuda-windows/Release"
+          foreach ($pattern in @(
+            "kspaceFirstOrder-CUDA.exe",
+            "cudart64_*.dll",
+            "cufft64_*.dll",
+            "hdf5*.dll",
+            "zlib*.dll",
+            "msvcp140*.dll",
+            "vcruntime140*.dll"
+          )) {
+            if (-not (Get-ChildItem -Path $dest -Filter $pattern -File -ErrorAction SilentlyContinue)) {
+              throw "CUDA Windows artifact is missing required file pattern: $pattern"
+            }
           }
-          Get-Content $help -TotalCount 20
+
+          $nvidiaSmi = Get-Command nvidia-smi -ErrorAction SilentlyContinue
+          $hasNvidiaGpu = $false
+          if ($nvidiaSmi) {
+            & $nvidiaSmi.Source -L *> $null
+            $hasNvidiaGpu = ($LASTEXITCODE -eq 0)
+          }
+
+          if ($hasNvidiaGpu) {
+            $help = "$env:RUNNER_TEMP/kspaceFirstOrder-CUDA-help.txt"
+            & "$dest\kspaceFirstOrder-CUDA.exe" --help > $help
+            if ($LASTEXITCODE -ne 0) {
+              throw "CUDA --help smoke test failed with exit code $LASTEXITCODE"
+            }
+            Get-Content $help -TotalCount 20
+          } else {
+            Write-Warning "Skipping CUDA executable smoke test because no NVIDIA GPU was detected on this runner"
+          }
 
       - name: Upload artifacts (CUDA Windows)
         if: success()
