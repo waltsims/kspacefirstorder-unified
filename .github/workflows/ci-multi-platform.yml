@@ -404,7 +404,19 @@ jobs:
           arch: x64
 
       - name: Install Ninja
-        run: choco install ninja --no-progress -y
+        shell: pwsh
+        run: |
+          choco install ninja --no-progress -y
+          $ninja = (Get-Command ninja.exe -ErrorAction SilentlyContinue).Source
+          if (-not $ninja) {
+            $ninja = "C:\ProgramData\chocolatey\bin\ninja.exe"
+          }
+          if (-not (Test-Path $ninja)) {
+            throw "Unable to locate ninja.exe after installation"
+          }
+          Split-Path $ninja | Out-File -FilePath $env:GITHUB_PATH -Append
+          "CMAKE_MAKE_PROGRAM=$ninja" | Out-File -FilePath $env:GITHUB_ENV -Append
+          & $ninja --version
 
       - name: Install vcpkg (manifest mode)
         uses: lukka/run-vcpkg@v11
@@ -417,14 +429,16 @@ jobs:
           # different keys, racing the action's own cache.
 
       - name: Configure (OpenMP, Windows)
-        run: >
-          cmake -S repos/kspaceFirstOrder-openmp-windows -B build/openmp-windows
-          -G "Ninja"
-          -DCMAKE_BUILD_TYPE=Release
-          -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}\scripts\buildsystems\vcpkg.cmake
-          -DUSE_MKL=OFF
-          -DENABLE_OPENMP=ON
-          -DARCH=avx2
+        shell: pwsh
+        run: |
+          cmake -S repos/kspaceFirstOrder-openmp-windows -B build/openmp-windows `
+            -G "Ninja" `
+            -DCMAKE_MAKE_PROGRAM="$env:CMAKE_MAKE_PROGRAM" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}\scripts\buildsystems\vcpkg.cmake" `
+            -DUSE_MKL=OFF `
+            -DENABLE_OPENMP=ON `
+            -DARCH=avx2
 
       - name: Build (OpenMP, Windows)
         run: cmake --build build/openmp-windows --parallel
