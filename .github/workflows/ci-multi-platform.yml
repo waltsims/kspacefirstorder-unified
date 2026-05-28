@@ -272,7 +272,18 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "vcpkg bootstrap failed with exit code $LASTEXITCODE"
           }
-          & "$vcpkgRoot\vcpkg.exe" install hdf5[szip]:x64-windows zlib:x64-windows
+          $packages = @("hdf5[szip]:x64-windows", "zlib:x64-windows")
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            & "$vcpkgRoot\vcpkg.exe" install @packages
+            if ($LASTEXITCODE -eq 0) {
+              break
+            }
+            if ($attempt -eq 3) {
+              throw "vcpkg install failed after $attempt attempts"
+            }
+            Write-Warning "vcpkg install failed with exit code $LASTEXITCODE; retrying in $($attempt * 30) seconds"
+            Start-Sleep -Seconds ($attempt * 30)
+          }
           echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       # Removed legacy alias step; project links vcpkg libs directly
@@ -431,14 +442,27 @@ jobs:
       - name: Configure (OpenMP, Windows)
         shell: pwsh
         run: |
-          cmake -S repos/kspaceFirstOrder-openmp-windows -B build/openmp-windows `
-            -G "Ninja" `
-            -DCMAKE_MAKE_PROGRAM="$env:CMAKE_MAKE_PROGRAM" `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}\scripts\buildsystems\vcpkg.cmake" `
-            -DUSE_MKL=OFF `
-            -DENABLE_OPENMP=ON `
-            -DARCH=avx2
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            if (Test-Path "build/openmp-windows") {
+              Remove-Item "build/openmp-windows" -Recurse -Force
+            }
+            cmake -S repos/kspaceFirstOrder-openmp-windows -B build/openmp-windows `
+              -G "Ninja" `
+              -DCMAKE_MAKE_PROGRAM="$env:CMAKE_MAKE_PROGRAM" `
+              -DCMAKE_BUILD_TYPE=Release `
+              -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}\scripts\buildsystems\vcpkg.cmake" `
+              -DUSE_MKL=OFF `
+              -DENABLE_OPENMP=ON `
+              -DARCH=avx2
+            if ($LASTEXITCODE -eq 0) {
+              break
+            }
+            if ($attempt -eq 3) {
+              throw "OpenMP Windows configure failed after $attempt attempts"
+            }
+            Write-Warning "OpenMP Windows configure failed with exit code $LASTEXITCODE; retrying in $($attempt * 30) seconds"
+            Start-Sleep -Seconds ($attempt * 30)
+          }
 
       - name: Build (OpenMP, Windows)
         run: cmake --build build/openmp-windows --parallel
