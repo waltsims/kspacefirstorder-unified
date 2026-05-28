@@ -272,6 +272,27 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "vcpkg bootstrap failed with exit code $LASTEXITCODE"
           }
+          $downloads = Join-Path $vcpkgRoot "downloads"
+          New-Item -ItemType Directory -Path $downloads -Force | Out-Null
+          $env:VCPKG_DOWNLOADS = $downloads
+
+          # GitHub-hosted Windows runners occasionally time out fetching this
+          # GitLab-hosted transitive HDF5 dependency. Prefetch it with a longer
+          # curl retry window, then let vcpkg verify the archive hash as usual.
+          $libaecUrl = "https://gitlab.dkrz.de/k202009/libaec/-/archive/v1.1.3/libaec-v1.1.3.tar.gz"
+          $libaecArchive = Join-Path $downloads "k202009-libaec-v1.1.3.tar.gz"
+          if (-not (Test-Path $libaecArchive)) {
+            $partial = "$libaecArchive.partial"
+            Remove-Item $partial -Force -ErrorAction SilentlyContinue
+            & curl.exe -L --fail --retry 8 --retry-all-errors --retry-delay 5 --connect-timeout 30 --max-time 300 --output $partial $libaecUrl
+            if ($LASTEXITCODE -eq 0) {
+              Move-Item $partial $libaecArchive -Force
+            } else {
+              Remove-Item $partial -Force -ErrorAction SilentlyContinue
+              Write-Warning "libaec prefetch failed with exit code $LASTEXITCODE; vcpkg will try the normal download path"
+            }
+          }
+
           $packages = @("hdf5[szip]:x64-windows", "zlib:x64-windows")
           for ($attempt = 1; $attempt -le 3; $attempt++) {
             & "$vcpkgRoot\vcpkg.exe" install @packages
@@ -477,6 +498,30 @@ jobs:
           # the previous explicit `actions/cache@v4` step here was
           # redundant — it cached the same paths twice with slightly
           # different keys, racing the action's own cache.
+
+      - name: Prefetch flaky vcpkg source archives
+        shell: pwsh
+        run: |
+          $downloads = Join-Path "${{ env.VCPKG_ROOT }}" "downloads"
+          New-Item -ItemType Directory -Path $downloads -Force | Out-Null
+          "VCPKG_DOWNLOADS=$downloads" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+          # GitHub-hosted Windows runners occasionally time out fetching this
+          # GitLab-hosted transitive HDF5 dependency. Prefetch it with a longer
+          # curl retry window, then let vcpkg verify the archive hash as usual.
+          $libaecUrl = "https://gitlab.dkrz.de/k202009/libaec/-/archive/v1.1.3/libaec-v1.1.3.tar.gz"
+          $libaecArchive = Join-Path $downloads "k202009-libaec-v1.1.3.tar.gz"
+          if (-not (Test-Path $libaecArchive)) {
+            $partial = "$libaecArchive.partial"
+            Remove-Item $partial -Force -ErrorAction SilentlyContinue
+            & curl.exe -L --fail --retry 8 --retry-all-errors --retry-delay 5 --connect-timeout 30 --max-time 300 --output $partial $libaecUrl
+            if ($LASTEXITCODE -eq 0) {
+              Move-Item $partial $libaecArchive -Force
+            } else {
+              Remove-Item $partial -Force -ErrorAction SilentlyContinue
+              Write-Warning "libaec prefetch failed with exit code $LASTEXITCODE; vcpkg will try the normal download path"
+            }
+          }
 
       - name: Configure (OpenMP, Windows)
         shell: pwsh
