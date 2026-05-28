@@ -297,6 +297,79 @@ jobs:
         run: |
           cmake --build build/cuda-windows --config Release -- /m
 
+      - name: Collect runtime DLLs (CUDA Windows)
+        # Ship the CUDA exe with every non-system runtime it needs on a
+        # clean Windows install: vcpkg HDF5/zlib/szip deps, MSVC CRT, and
+        # CUDA runtime DLLs from the installed toolkit.
+        shell: pwsh
+        run: |
+          $dest = "build/cuda-windows/Release"
+          if (-not (Test-Path "$dest/kspaceFirstOrder-CUDA.exe")) {
+            throw "CUDA exe not found in expected artifact directory: $dest"
+          }
+
+          $vcpkgCandidates = @(
+            "$env:VCPKG_ROOT/installed/x64-windows/bin",
+            "build/cuda-windows/vcpkg_installed/x64-windows/bin"
+          )
+          $vcpkgBin = $vcpkgCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $vcpkgBin) {
+            throw "No vcpkg runtime bin directory found. Checked: $($vcpkgCandidates -join ', ')"
+          }
+          Copy-Item "$vcpkgBin/*.dll" $dest -Force -Verbose
+
+          $redistRoot = $env:VCToolsRedistDir
+          if (-not $redistRoot) {
+            $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+              -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+              -property installationPath
+            if (-not $vsPath) {
+              throw "Unable to locate Visual Studio installation with VC tools"
+            }
+            $redistRoot = Join-Path $vsPath "VC/Redist/MSVC"
+          }
+
+          if (Test-Path (Join-Path $redistRoot "x64")) {
+            $redistX64 = Join-Path $redistRoot "x64"
+          } else {
+            $redistVersion = Get-ChildItem -Path $redistRoot -Directory |
+              Where-Object { $_.Name -match '^\d+\.\d+\.\d+$' } |
+              Sort-Object Name -Descending |
+              Select-Object -First 1
+            if (-not $redistVersion) {
+              throw "No MSVC redistributable version directory found under $redistRoot"
+            }
+            $redistX64 = Join-Path $redistVersion.FullName "x64"
+          }
+
+          Get-ChildItem -Path $redistX64 -Filter "Microsoft.*.CRT" -Directory -ErrorAction SilentlyContinue |
+            ForEach-Object { Copy-Item "$($_.FullName)/*.dll" $dest -Force -Verbose }
+
+          if (-not $env:CUDA_PATH) {
+            throw "CUDA_PATH is not set; cannot collect CUDA runtime DLLs"
+          }
+          $cudaBin = Join-Path $env:CUDA_PATH "bin"
+          foreach ($pattern in @("cudart64_*.dll", "cufft64_*.dll")) {
+            $matches = Get-ChildItem -Path $cudaBin -Filter $pattern -File -ErrorAction SilentlyContinue
+            if (-not $matches) {
+              throw "No CUDA DLLs matched '$pattern' in $cudaBin"
+            }
+            $matches | Copy-Item -Destination $dest -Force -Verbose
+          }
+
+          Write-Host "=== Final CUDA artifact contents ==="
+          Get-ChildItem "$dest/*.exe", "$dest/*.dll" | Select-Object Name, Length
+
+      - name: Smoke test (CUDA Windows)
+        shell: pwsh
+        run: |
+          $help = "$env:RUNNER_TEMP/kspaceFirstOrder-CUDA-help.txt"
+          & ".\build\cuda-windows\Release\kspaceFirstOrder-CUDA.exe" --help > $help
+          if ($LASTEXITCODE -ne 0) {
+            throw "CUDA --help smoke test failed with exit code $LASTEXITCODE"
+          }
+          Get-Content $help -TotalCount 20
+
       - name: Upload artifacts (CUDA Windows)
         if: success()
         uses: actions/upload-artifact@v4.3.1
@@ -304,6 +377,7 @@ jobs:
           name: kspaceFirstOrder-cuda-windows-${{ matrix.cuda-version }}
           path: |
             build/cuda-windows/Release/kspaceFirstOrder-CUDA.exe
+            build/cuda-windows/Release/*.dll
           if-no-files-found: error
 
       - name: Build diagnostics (CUDA Windows)

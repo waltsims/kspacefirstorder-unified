@@ -78,9 +78,10 @@ jobs:
           cp artifacts/kspaceFirstOrder-openmp-windows-windows-latest/kspaceFirstOrder-OMP.exe \
              stage/kspaceFirstOrder-OMP-windows.exe
 
-          # Windows runtime DLLs ship from the OMP build only; both backends
-          # consume them since k-wave-python places both .exe files in the
-          # same kwave/bin/windows/ directory.
+          # Windows runtime DLLs ship with their backend artifacts. CUDA has
+          # CUDA-specific runtime DLLs (cudart/cufft) that OMP cannot provide,
+          # while OMP has its own FFTW/OpenMP runtime set.
+          cp artifacts/kspaceFirstOrder-cuda-windows-13.0.0/*.dll stage/
           cp artifacts/kspaceFirstOrder-openmp-windows-windows-latest/*.dll stage/
 
           ls -la stage/
