@@ -373,11 +373,19 @@ jobs:
           if (-not $env:CUDA_PATH) {
             throw "CUDA_PATH is not set; cannot collect CUDA runtime DLLs"
           }
-          $cudaBin = Join-Path $env:CUDA_PATH "bin"
+          $cudaDllDirs = @(
+            (Join-Path $env:CUDA_PATH "bin"),
+            (Join-Path $env:CUDA_PATH "bin/x64")
+          ) | Where-Object { Test-Path $_ }
+          if (-not $cudaDllDirs) {
+            throw "No CUDA runtime DLL directories found under $env:CUDA_PATH"
+          }
           foreach ($pattern in @("cudart64_*.dll", "cufft64_*.dll")) {
-            $cudaDlls = Get-ChildItem -Path $cudaBin -Filter $pattern -File -ErrorAction SilentlyContinue
+            $cudaDlls = $cudaDllDirs |
+              ForEach-Object { Get-ChildItem -Path $_ -Filter $pattern -File -ErrorAction SilentlyContinue } |
+              Sort-Object FullName -Unique
             if (-not $cudaDlls) {
-              throw "No CUDA DLLs matched '$pattern' in $cudaBin"
+              throw "No CUDA DLLs matched '$pattern' in: $($cudaDllDirs -join ', ')"
             }
             $cudaDlls | Copy-Item -Destination $dest -Force -Verbose
           }
