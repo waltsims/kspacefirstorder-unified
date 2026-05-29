@@ -272,7 +272,19 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "vcpkg bootstrap failed with exit code $LASTEXITCODE"
           }
-          & "$vcpkgRoot\vcpkg.exe" install hdf5[szip]:x64-windows zlib:x64-windows
+          $overlayPorts = (Resolve-Path ".github/vcpkg-overlays").Path
+          $packages = @("hdf5[szip]:x64-windows", "zlib:x64-windows")
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            & "$vcpkgRoot\vcpkg.exe" install @packages "--overlay-ports=$overlayPorts"
+            if ($LASTEXITCODE -eq 0) {
+              break
+            }
+            if ($attempt -eq 3) {
+              throw "vcpkg install failed after $attempt attempts"
+            }
+            Write-Warning "vcpkg install failed with exit code $LASTEXITCODE; retrying in $($attempt * 30) seconds"
+            Start-Sleep -Seconds ($attempt * 30)
+          }
           echo "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       # Removed legacy alias step; project links vcpkg libs directly
@@ -297,6 +309,126 @@ jobs:
         run: |
           cmake --build build/cuda-windows --config Release -- /m
 
+      - name: Collect runtime DLLs (CUDA Windows)
+        # Ship the CUDA exe with every non-system runtime it needs on a
+        # clean Windows install: vcpkg HDF5/zlib/szip deps, MSVC CRT, and
+        # CUDA runtime DLLs from the installed toolkit.
+        shell: pwsh
+        run: |
+          $dest = "build/cuda-windows/Release"
+          if (-not (Test-Path "$dest/kspaceFirstOrder-CUDA.exe")) {
+            throw "CUDA exe not found in expected artifact directory: $dest"
+          }
+
+          $vcpkgCandidates = @(
+            "$env:VCPKG_ROOT/installed/x64-windows/bin",
+            "build/cuda-windows/vcpkg_installed/x64-windows/bin"
+          )
+          $vcpkgBin = $vcpkgCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $vcpkgBin) {
+            throw "No vcpkg runtime bin directory found. Checked: $($vcpkgCandidates -join ', ')"
+          }
+          $vcpkgDlls = Get-ChildItem -Path $vcpkgBin -Filter "*.dll" -File -ErrorAction SilentlyContinue
+          if (-not $vcpkgDlls) {
+            throw "No vcpkg runtime DLLs found in $vcpkgBin"
+          }
+          $vcpkgDlls | Copy-Item -Destination $dest -Force -Verbose
+
+          $redistRoot = $env:VCToolsRedistDir
+          if (-not $redistRoot) {
+            $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+              -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+              -property installationPath
+            if (-not $vsPath) {
+              throw "Unable to locate Visual Studio installation with VC tools"
+            }
+            $redistRoot = Join-Path $vsPath "VC/Redist/MSVC"
+          }
+
+          if (Test-Path (Join-Path $redistRoot "x64")) {
+            $redistX64 = Join-Path $redistRoot "x64"
+          } else {
+            $redistVersion = Get-ChildItem -Path $redistRoot -Directory |
+              Where-Object { $_.Name -match '^\d+\.\d+\.\d+$' } |
+              Sort-Object Name -Descending |
+              Select-Object -First 1
+            if (-not $redistVersion) {
+              throw "No MSVC redistributable version directory found under $redistRoot"
+            }
+            $redistX64 = Join-Path $redistVersion.FullName "x64"
+          }
+
+          $crtDirs = Get-ChildItem -Path $redistX64 -Filter "Microsoft.*.CRT" -Directory -ErrorAction SilentlyContinue
+          if (-not $crtDirs) {
+            throw "No MSVC CRT redist directories found under $redistX64"
+          }
+          $crtDlls = $crtDirs | ForEach-Object {
+            Get-ChildItem -Path $_.FullName -Filter "*.dll" -File -ErrorAction SilentlyContinue
+          }
+          if (-not $crtDlls) {
+            throw "No MSVC CRT DLLs found under $redistX64"
+          }
+          $crtDlls | Copy-Item -Destination $dest -Force -Verbose
+
+          if (-not $env:CUDA_PATH) {
+            throw "CUDA_PATH is not set; cannot collect CUDA runtime DLLs"
+          }
+          $cudaDllDirs = @(
+            (Join-Path $env:CUDA_PATH "bin"),
+            (Join-Path $env:CUDA_PATH "bin/x64")
+          ) | Where-Object { Test-Path $_ }
+          if (-not $cudaDllDirs) {
+            throw "No CUDA runtime DLL directories found under $env:CUDA_PATH"
+          }
+          foreach ($pattern in @("cudart64_*.dll", "cufft64_*.dll")) {
+            $cudaDlls = $cudaDllDirs |
+              ForEach-Object { Get-ChildItem -Path $_ -Filter $pattern -File -ErrorAction SilentlyContinue } |
+              Sort-Object FullName -Unique
+            if (-not $cudaDlls) {
+              throw "No CUDA DLLs matched '$pattern' in: $($cudaDllDirs -join ', ')"
+            }
+            $cudaDlls | Copy-Item -Destination $dest -Force -Verbose
+          }
+
+          Write-Host "=== Final CUDA artifact contents ==="
+          Get-ChildItem "$dest/*.exe", "$dest/*.dll" | Select-Object Name, Length
+
+      - name: Verify CUDA Windows artifact
+        shell: pwsh
+        run: |
+          $dest = "build/cuda-windows/Release"
+          foreach ($pattern in @(
+            "kspaceFirstOrder-CUDA.exe",
+            "cudart64_*.dll",
+            "cufft64_*.dll",
+            "hdf5*.dll",
+            "zlib*.dll",
+            "msvcp140*.dll",
+            "vcruntime140*.dll"
+          )) {
+            if (-not (Get-ChildItem -Path $dest -Filter $pattern -File -ErrorAction SilentlyContinue)) {
+              throw "CUDA Windows artifact is missing required file pattern: $pattern"
+            }
+          }
+
+          $nvidiaSmi = Get-Command nvidia-smi -ErrorAction SilentlyContinue
+          $hasNvidiaGpu = $false
+          if ($nvidiaSmi) {
+            & $nvidiaSmi.Source -L *> $null
+            $hasNvidiaGpu = ($LASTEXITCODE -eq 0)
+          }
+
+          if ($hasNvidiaGpu) {
+            $help = "$env:RUNNER_TEMP/kspaceFirstOrder-CUDA-help.txt"
+            & "$dest\kspaceFirstOrder-CUDA.exe" --help > $help
+            if ($LASTEXITCODE -ne 0) {
+              throw "CUDA --help smoke test failed with exit code $LASTEXITCODE"
+            }
+            Get-Content $help -TotalCount 20
+          } else {
+            Write-Warning "Skipping CUDA executable smoke test because no NVIDIA GPU was detected on this runner"
+          }
+
       - name: Upload artifacts (CUDA Windows)
         if: success()
         uses: actions/upload-artifact@v4.3.1
@@ -304,6 +436,7 @@ jobs:
           name: kspaceFirstOrder-cuda-windows-${{ matrix.cuda-version }}
           path: |
             build/cuda-windows/Release/kspaceFirstOrder-CUDA.exe
+            build/cuda-windows/Release/*.dll
           if-no-files-found: error
 
       - name: Build diagnostics (CUDA Windows)
@@ -330,7 +463,19 @@ jobs:
           arch: x64
 
       - name: Install Ninja
-        run: choco install ninja --no-progress -y
+        shell: pwsh
+        run: |
+          choco install ninja --no-progress -y
+          $ninja = (Get-Command ninja.exe -ErrorAction SilentlyContinue).Source
+          if (-not $ninja) {
+            $ninja = "C:\ProgramData\chocolatey\bin\ninja.exe"
+          }
+          if (-not (Test-Path $ninja)) {
+            throw "Unable to locate ninja.exe after installation"
+          }
+          Split-Path $ninja | Out-File -FilePath $env:GITHUB_PATH -Append
+          "CMAKE_MAKE_PROGRAM=$ninja" | Out-File -FilePath $env:GITHUB_ENV -Append
+          & $ninja --version
 
       - name: Install vcpkg (manifest mode)
         uses: lukka/run-vcpkg@v11
@@ -343,14 +488,31 @@ jobs:
           # different keys, racing the action's own cache.
 
       - name: Configure (OpenMP, Windows)
-        run: >
-          cmake -S repos/kspaceFirstOrder-openmp-windows -B build/openmp-windows
-          -G "Ninja"
-          -DCMAKE_BUILD_TYPE=Release
-          -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}\scripts\buildsystems\vcpkg.cmake
-          -DUSE_MKL=OFF
-          -DENABLE_OPENMP=ON
-          -DARCH=avx2
+        shell: pwsh
+        run: |
+          $overlayPorts = (Resolve-Path ".github/vcpkg-overlays").Path
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            if (Test-Path "build/openmp-windows") {
+              Remove-Item "build/openmp-windows" -Recurse -Force
+            }
+            cmake -S repos/kspaceFirstOrder-openmp-windows -B build/openmp-windows `
+              -G "Ninja" `
+              -DCMAKE_MAKE_PROGRAM="$env:CMAKE_MAKE_PROGRAM" `
+              -DCMAKE_BUILD_TYPE=Release `
+              -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}\scripts\buildsystems\vcpkg.cmake" `
+              -DVCPKG_OVERLAY_PORTS="$overlayPorts" `
+              -DUSE_MKL=OFF `
+              -DENABLE_OPENMP=ON `
+              -DARCH=avx2
+            if ($LASTEXITCODE -eq 0) {
+              break
+            }
+            if ($attempt -eq 3) {
+              throw "OpenMP Windows configure failed after $attempt attempts"
+            }
+            Write-Warning "OpenMP Windows configure failed with exit code $LASTEXITCODE; retrying in $($attempt * 30) seconds"
+            Start-Sleep -Seconds ($attempt * 30)
+          }
 
       - name: Build (OpenMP, Windows)
         run: cmake --build build/openmp-windows --parallel
