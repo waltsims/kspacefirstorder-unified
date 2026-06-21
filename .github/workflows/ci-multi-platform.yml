@@ -225,7 +225,11 @@ jobs:
           cmake --version
 
   windows-cuda:
-    runs-on: windows-latest
+    # Pin to windows-2022 (VS 2022). windows-latest now ships VS 2026 (v18),
+    # which CUDA 13.0's host_config.h rejects: "Only the versions between
+    # 2019 and 2022 (inclusive) are supported". CUDA hasn't shipped VS 2026
+    # support yet; bump back to windows-latest once it does.
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
