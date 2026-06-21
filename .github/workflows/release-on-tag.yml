@@ -147,6 +147,11 @@ jobs:
         if: ${{ !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No actions/checkout in this job, so gh CLI can't auto-detect the
+          # target repo from a git remote. Set GH_REPO explicitly to skip
+          # the git probe (otherwise: "failed to run git: fatal: not a git
+          # repository"). github.repository expands to e.g. "owner/repo".
+          GH_REPO: ${{ github.repository }}
           VERSION: ${{ steps.ver.outputs.version }}
           PRERELEASE: ${{ steps.ver.outputs.prerelease }}
         run: |
