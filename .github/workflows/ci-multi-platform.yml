@@ -487,7 +487,13 @@ jobs:
           Get-ChildItem -Recurse -Filter *.targets "C:\Program Files (x86)\Microsoft Visual Studio" -ErrorAction SilentlyContinue | Select-Object -First 5 | ForEach-Object { $_.FullName }
 
   windows-openmp:
-    runs-on: windows-latest
+    # Pin to windows-2022 to match windows-cuda (which is forced to 2022 by
+    # CUDA 13.0's host_config.h check). Same MSVC version on both Windows
+    # jobs gives vcpkg the same compile environment for shared deps
+    # (HDF5/szip/zlib/MSVC CRT), which lets the release-on-tag staging step
+    # ship a single byte-identical DLL bundle instead of warning about
+    # backend-specific byte drift. Tracked in #27.
+    runs-on: windows-2022
     env:
       VCPKG_ROOT: C:\vcpkg
     steps:
