@@ -354,7 +354,7 @@ jobs:
         # CUDA runtime DLLs from the installed toolkit.
         shell: pwsh
         run: |
-          $dest = "build/cuda-windows/Release"
+          $dest = "build/cuda-windows"
           if (-not (Test-Path "$dest/kspaceFirstOrder-CUDA.exe")) {
             throw "CUDA exe not found in expected artifact directory: $dest"
           }
@@ -435,7 +435,7 @@ jobs:
       - name: Verify CUDA Windows artifact
         shell: pwsh
         run: |
-          $dest = "build/cuda-windows/Release"
+          $dest = "build/cuda-windows"
           foreach ($pattern in @(
             "kspaceFirstOrder-CUDA.exe",
             "cudart64_*.dll",
@@ -474,8 +474,8 @@ jobs:
         with:
           name: kspaceFirstOrder-cuda-windows-${{ matrix.cuda-version }}
           path: |
-            build/cuda-windows/Release/kspaceFirstOrder-CUDA.exe
-            build/cuda-windows/Release/*.dll
+            build/cuda-windows/kspaceFirstOrder-CUDA.exe
+            build/cuda-windows/*.dll
           if-no-files-found: error
 
       - name: Build diagnostics (CUDA Windows)
