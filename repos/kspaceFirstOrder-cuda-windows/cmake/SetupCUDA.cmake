@@ -164,7 +164,8 @@ endfunction()
 #   https://github.com/rapidsai/rapids-cmake/blob/branch-23.09/rapids-cmake/cuda/set_architectures.cmake#L60)
 # We need to have our own logic to select our own architectures and create PTX for the latest arch
 # for forward compatibility. Only keep the default cmake behavior for native archs input.
-# Start with "70", this is the lowest architecture supported by cuFFTDx
+# Start with "75" (Turing). CUDA 13.0 removed nvcc support for Maxwell (sm_5x),
+# Pascal (sm_6x), and Volta (sm_70/72); the floor here is set by nvcc, not cuFFT.
 if(CMAKE_CUDA_ARCHITECTURES STREQUAL "all")
     set(CMAKE_CUDA_ARCHITECTURES "75;80;86;87;89;90;90a;100;100a;103;103a;110;120;120a;121;121a")
     update_cmake_cuda_architectures("${CMAKE_CUDA_ARCHITECTURES}" FALSE)
