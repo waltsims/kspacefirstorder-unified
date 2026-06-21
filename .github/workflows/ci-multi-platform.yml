@@ -134,10 +134,29 @@ jobs:
             -DHDF5_ROOT=/usr/lib/x86_64-linux-gnu/hdf5/serial \
             -DCUDAToolkit_ROOT=/usr/local/cuda
 
+      - name: Print shipped CUDA architectures (Linux)
+        run: |
+          echo "::group::Final CMAKE_CUDA_ARCHITECTURES (post-filter)"
+          cmake -L -N build/cuda-linux 2>/dev/null | grep -i cuda_architectures || true
+          echo "::endgroup::"
+
       - name: Build (CUDA, Linux)
         run: |
           set -euxo pipefail
           cmake --build build/cuda-linux --parallel "$(nproc)"
+
+      - name: Embedded SASS architectures (Linux)
+        run: |
+          echo "::group::cuobjdump --list-elf"
+          if command -v cuobjdump >/dev/null; then
+            cuobjdump --list-elf build/cuda-linux/kspaceFirstOrder-CUDA | tee /tmp/sass-list.txt
+            echo ""
+            echo "Unique compute capabilities embedded:"
+            grep -oE 'sm_[0-9]+a?' /tmp/sass-list.txt | sort -u
+          else
+            echo "::warning::cuobjdump not found; cannot inventory shipped archs"
+          fi
+          echo "::endgroup::"
 
       - name: Verify static linkage (CUDA, Linux)
         run: scripts/check-linux-binary-deps.sh build/cuda-linux/kspaceFirstOrder-CUDA cuda
@@ -206,7 +225,11 @@ jobs:
           cmake --version
 
   windows-cuda:
-    runs-on: windows-latest
+    # Pin to windows-2022 (VS 2022). windows-latest now ships VS 2026 (v18),
+    # which CUDA 13.0's host_config.h rejects: "Only the versions between
+    # 2019 and 2022 (inclusive) are supported". CUDA hasn't shipped VS 2026
+    # support yet; bump back to windows-latest once it does.
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
@@ -217,8 +240,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v2.0.0
+      - name: Setup MSVC dev env
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
       - name: Install CUDA Toolkit (Windows)
         uses: N-Storm/cuda-toolkit@v0.2.27m
@@ -232,33 +257,20 @@ jobs:
           non-cuda-sub-packages: '[]'
           log-file-suffix: ${{ matrix.cuda-version }}.log.txt
 
-      - name: Register CUDA MSBuild customizations
+      - name: Install Ninja
         shell: pwsh
         run: |
-          $vsPath = & "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -property installationPath
-          if (-not $vsPath) {
-            throw "Failed to locate Visual Studio installation"
+          choco install ninja --no-progress -y
+          $ninja = (Get-Command ninja.exe -ErrorAction SilentlyContinue).Source
+          if (-not $ninja) {
+            $ninja = "C:\ProgramData\chocolatey\bin\ninja.exe"
           }
-          & "$vsPath\Common7\Tools\VsDevCmd.bat" -no_logo -arch=amd64 -host_arch=amd64 | Out-Null
-          if (-not $env:CUDA_PATH) {
-            throw "CUDA_PATH is not set after toolkit installation"
+          if (-not (Test-Path $ninja)) {
+            throw "Unable to locate ninja.exe after installation"
           }
-          if (-not $env:VCTargetsPath) {
-            $vcTargets = Join-Path $vsPath 'MSBuild/Microsoft/VC/v170'
-            if (-not (Test-Path $vcTargets)) {
-              throw "Unable to determine VCTargetsPath under $vsPath"
-            }
-            $env:VCTargetsPath = $vcTargets
-          }
-          $src = Join-Path $env:CUDA_PATH 'extras\visual_studio_integration\MSBuildExtensions'
-          $dest = Join-Path $env:VCTargetsPath 'BuildCustomizations'
-          Write-Host "Copying CUDA build customizations from $src to $dest"
-          if (-not (Test-Path $src)) {
-            throw "Expected MSBuildExtensions directory not found at $src"
-          }
-          New-Item -ItemType Directory -Path $dest -Force | Out-Null
-          Copy-Item -Path (Join-Path $src 'CUDA*.props') -Destination $dest -Force
-          Copy-Item -Path (Join-Path $src 'CUDA*.targets') -Destination $dest -Force
+          Split-Path $ninja | Out-File -FilePath $env:GITHUB_PATH -Append
+          "CMAKE_MAKE_PROGRAM=$ninja" | Out-File -FilePath $env:GITHUB_ENV -Append
+          & $ninja --version
 
       - name: Install vcpkg and dependencies (HDF5 + zlib)
         shell: pwsh
@@ -292,22 +304,49 @@ jobs:
       - name: Configure (CUDA, Windows)
         shell: pwsh
         env:
-          CMAKE_GENERATOR: "Visual Studio 17 2022"
-          CMAKE_GENERATOR_PLATFORM: x64
-          CMAKE_GENERATOR_TOOLSET: host=x64
           VCPKG_ROOT: ${{ env.VCPKG_ROOT }}
         run: |
           $env:PATH = "$env:VCPKG_ROOT;${env:PATH}"
           cmake -S repos/kspaceFirstOrder-cuda-windows -B build/cuda-windows `
+            -G "Ninja" `
+            -DCMAKE_MAKE_PROGRAM="$env:CMAKE_MAKE_PROGRAM" `
             -DCMAKE_BUILD_TYPE=Release `
             -DKSPACE_CPU_ARCH=avx2 `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=x64-windows
 
+      - name: Print shipped CUDA architectures (Windows)
+        shell: pwsh
+        run: |
+          Write-Host "::group::Final CMAKE_CUDA_ARCHITECTURES (post-filter)"
+          $cacheDump = & cmake -L -N build/cuda-windows 2>$null
+          $cacheDump | Where-Object { $_ -match 'cuda_architectures' } | ForEach-Object { Write-Host $_ }
+          Write-Host "::endgroup::"
+
       - name: Build (CUDA, Windows)
         shell: pwsh
         run: |
-          cmake --build build/cuda-windows --config Release -- /m
+          cmake --build build/cuda-windows
+
+      - name: Embedded SASS architectures (Windows)
+        shell: pwsh
+        run: |
+          Write-Host "::group::cuobjdump --list-elf"
+          $cuobjdump = Get-Command cuobjdump -ErrorAction SilentlyContinue
+          $exe = "build/cuda-windows/kspaceFirstOrder-CUDA.exe"
+          if ($cuobjdump -and (Test-Path $exe)) {
+            $sassLog = Join-Path $env:RUNNER_TEMP 'sass-list.txt'
+            & $cuobjdump.Source --list-elf $exe | Tee-Object -FilePath $sassLog
+            Write-Host ""
+            Write-Host "Unique compute capabilities embedded:"
+            Select-String -Path $sassLog -Pattern 'sm_[0-9]+a?' -AllMatches |
+              ForEach-Object { $_.Matches } |
+              ForEach-Object { $_.Value } |
+              Sort-Object -Unique
+          } else {
+            Write-Warning "cuobjdump not found or exe missing; cannot inventory shipped archs"
+          }
+          Write-Host "::endgroup::"
 
       - name: Collect runtime DLLs (CUDA Windows)
         # Ship the CUDA exe with every non-system runtime it needs on a
@@ -315,7 +354,7 @@ jobs:
         # CUDA runtime DLLs from the installed toolkit.
         shell: pwsh
         run: |
-          $dest = "build/cuda-windows/Release"
+          $dest = "build/cuda-windows"
           if (-not (Test-Path "$dest/kspaceFirstOrder-CUDA.exe")) {
             throw "CUDA exe not found in expected artifact directory: $dest"
           }
@@ -396,7 +435,7 @@ jobs:
       - name: Verify CUDA Windows artifact
         shell: pwsh
         run: |
-          $dest = "build/cuda-windows/Release"
+          $dest = "build/cuda-windows"
           foreach ($pattern in @(
             "kspaceFirstOrder-CUDA.exe",
             "cudart64_*.dll",
@@ -435,8 +474,8 @@ jobs:
         with:
           name: kspaceFirstOrder-cuda-windows-${{ matrix.cuda-version }}
           path: |
-            build/cuda-windows/Release/kspaceFirstOrder-CUDA.exe
-            build/cuda-windows/Release/*.dll
+            build/cuda-windows/kspaceFirstOrder-CUDA.exe
+            build/cuda-windows/*.dll
           if-no-files-found: error
 
       - name: Build diagnostics (CUDA Windows)

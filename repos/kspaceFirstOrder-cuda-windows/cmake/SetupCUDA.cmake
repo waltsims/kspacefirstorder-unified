@@ -35,9 +35,10 @@ endif()
 # CMAKE_CUDA_COMPILER_VERSION is set and our post-enable filter (in
 # update_cmake_cuda_architectures below) gets a chance to run.
 #
-# Currently this only needs to handle the Blackwell archs (100, 120)
-# which require nvcc >= 12.8; older arches in our default list
-# (75..90a) work on every nvcc the project supports.
+# Currently this needs to handle the Blackwell archs (100/100a/120/120a)
+# which require nvcc >= 12.8, and Blackwell-refresh / Jetson Thor /
+# GB10 (103/103a/110/121/121a) which require nvcc >= 13.0; older arches
+# in our default list (75..90a) work on every nvcc the project supports.
 if(NOT CMAKE_CUDA_ARCHITECTURES STREQUAL "native")
     if(NOT DEFINED CMAKE_CUDA_COMPILER)
         find_program(_probe_nvcc nvcc
@@ -62,6 +63,25 @@ if(NOT CMAKE_CUDA_ARCHITECTURES STREQUAL "native")
                     endif()
                 endforeach()
             endif()
+            # Blackwell arch-specific variants share the 12.8 floor with their base archs
+            if(_probe_cuda_num LESS 1208)
+                foreach(_blackwell_arch IN ITEMS "100a" "120a")
+                    if("${_blackwell_arch}" IN_LIST CMAKE_CUDA_ARCHITECTURES)
+                        message(STATUS "Pre-filter: dropping sm_${_blackwell_arch} (Blackwell) — nvcc ${CMAKE_MATCH_1}.${CMAKE_MATCH_2} predates 12.8")
+                        list(REMOVE_ITEM CMAKE_CUDA_ARCHITECTURES "${_blackwell_arch}")
+                    endif()
+                endforeach()
+            endif()
+
+            # Blackwell-refresh (B300), Jetson Thor, GB10/DGX Spark require nvcc >= 13.0
+            if(_probe_cuda_num LESS 1300)
+                foreach(_b300_arch IN ITEMS "103" "103a" "110" "121" "121a")
+                    if("${_b300_arch}" IN_LIST CMAKE_CUDA_ARCHITECTURES)
+                        message(STATUS "Pre-filter: dropping sm_${_b300_arch} (Blackwell-refresh/Thor/GB10) — nvcc ${CMAKE_MATCH_1}.${CMAKE_MATCH_2} predates 13.0")
+                        list(REMOVE_ITEM CMAKE_CUDA_ARCHITECTURES "${_b300_arch}")
+                    endif()
+                endforeach()
+            endif()
         endif()
     endif()
 endif()
@@ -75,6 +95,22 @@ function(update_cmake_cuda_architectures supported_archs warn)
     list(APPEND CMAKE_MESSAGE_CONTEXT "update_cmake_cuda_architectures")
 
     if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
+        if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 13.0.0)
+            foreach(_b300_arch IN ITEMS "103" "103a" "110" "121" "121a")
+                if("${_b300_arch}" IN_LIST supported_archs AND ${warn})
+                    message(WARNING "sm${_b300_arch} (Blackwell-refresh/Thor/GB10) not supported with nvcc < 13.0.0")
+                endif()
+                list(REMOVE_ITEM supported_archs "${_b300_arch}")
+            endforeach()
+        endif()
+        if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 12.8.0)
+            foreach(_blackwell_arch IN ITEMS "100a" "120a")
+                if("${_blackwell_arch}" IN_LIST supported_archs AND ${warn})
+                    message(WARNING "sm${_blackwell_arch} (Blackwell) not supported with nvcc < 12.8.0")
+                endif()
+                list(REMOVE_ITEM supported_archs "${_blackwell_arch}")
+            endforeach()
+        endif()
         if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 12.8.0)
             foreach(_blackwell_arch IN ITEMS "100" "120")
                 if("${_blackwell_arch}" IN_LIST supported_archs AND ${warn})
@@ -128,12 +164,13 @@ endfunction()
 #   https://github.com/rapidsai/rapids-cmake/blob/branch-23.09/rapids-cmake/cuda/set_architectures.cmake#L60)
 # We need to have our own logic to select our own architectures and create PTX for the latest arch
 # for forward compatibility. Only keep the default cmake behavior for native archs input.
-# Start with "70", this is the lowest architecture supported by cuFFTDx
+# Start with "75" (Turing). CUDA 13.0 removed nvcc support for Maxwell (sm_5x),
+# Pascal (sm_6x), and Volta (sm_70/72); the floor here is set by nvcc, not cuFFT.
 if(CMAKE_CUDA_ARCHITECTURES STREQUAL "all")
-    set(CMAKE_CUDA_ARCHITECTURES "70;72;75;80;86;87;89;90;90a;100;120")
+    set(CMAKE_CUDA_ARCHITECTURES "75;80;86;87;89;90;90a;100;100a;103;103a;110;120;120a;121;121a")
     update_cmake_cuda_architectures("${CMAKE_CUDA_ARCHITECTURES}" FALSE)
 elseif(CMAKE_CUDA_ARCHITECTURES STREQUAL "all-major")
-    set(CMAKE_CUDA_ARCHITECTURES "70;80;90;100")
+    set(CMAKE_CUDA_ARCHITECTURES "75;80;90;100;120")
     update_cmake_cuda_architectures("${CMAKE_CUDA_ARCHITECTURES}" FALSE)
 elseif(NOT CMAKE_CUDA_ARCHITECTURES STREQUAL "native")
     update_cmake_cuda_architectures("${CMAKE_CUDA_ARCHITECTURES}" TRUE)
