@@ -27,11 +27,18 @@ set(KSPACE_CUDA_ARCH_LIST "" CACHE STRING "Override CUDA architectures (semicolo
 if(KSPACE_CUDA_ARCH_LIST)
   set(CMAKE_CUDA_ARCHITECTURES "${KSPACE_CUDA_ARCH_LIST}")
 elseif(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-  # Default to modern architectures supported by current CUDA toolkits.
-  # sm_100/sm_120 (Blackwell) require CUDA 12.8+; SetupCUDA.cmake drops
-  # them automatically when an older toolchain is detected.
-  # Override via KSPACE_CUDA_ARCH_LIST if needed.
-  set(CMAKE_CUDA_ARCHITECTURES "75;80;86;87;89;90;90a;100;120")
+  # Default to every architecture supported by current CUDA 13.x toolkits:
+  #   Turing (sm_75), Ampere (sm_80/86/87), Ada (sm_89),
+  #   Hopper (sm_90/90a),
+  #   Blackwell datacenter (sm_100/100a) + Ultra refresh (sm_103/103a),
+  #   Jetson Thor (sm_110),
+  #   Blackwell consumer (sm_120/120a),
+  #   GB10 / DGX Spark (sm_121/121a).
+  # SetupCUDA.cmake's pre-filter drops archs the installed toolkit doesn't accept
+  # (sm_100/100a/120/120a require nvcc >= 12.8; sm_103/103a/110/121/121a require nvcc >= 13.0).
+  # Maxwell / Pascal / Volta (sm_50-72) are not supported — removed from nvcc in CUDA 13.0.
+  # Override via -DKSPACE_CUDA_ARCH_LIST=... if needed.
+  set(CMAKE_CUDA_ARCHITECTURES "75;80;86;87;89;90;90a;100;100a;103;103a;110;120;120a;121;121a")
 endif()
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetupCUDA.cmake)

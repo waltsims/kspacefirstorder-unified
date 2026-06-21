@@ -134,10 +134,29 @@ jobs:
             -DHDF5_ROOT=/usr/lib/x86_64-linux-gnu/hdf5/serial \
             -DCUDAToolkit_ROOT=/usr/local/cuda
 
+      - name: Print shipped CUDA architectures (Linux)
+        run: |
+          echo "::group::Final CMAKE_CUDA_ARCHITECTURES (post-filter)"
+          cmake -L -N build/cuda-linux 2>/dev/null | grep -i cuda_architectures || true
+          echo "::endgroup::"
+
       - name: Build (CUDA, Linux)
         run: |
           set -euxo pipefail
           cmake --build build/cuda-linux --parallel "$(nproc)"
+
+      - name: Embedded SASS architectures (Linux)
+        run: |
+          echo "::group::cuobjdump --list-elf"
+          if command -v cuobjdump >/dev/null; then
+            cuobjdump --list-elf build/cuda-linux/kspaceFirstOrder-CUDA | tee /tmp/sass-list.txt
+            echo ""
+            echo "Unique compute capabilities embedded:"
+            grep -oE 'sm_[0-9]+a?' /tmp/sass-list.txt | sort -u
+          else
+            echo "::warning::cuobjdump not found; cannot inventory shipped archs"
+          fi
+          echo "::endgroup::"
 
       - name: Verify static linkage (CUDA, Linux)
         run: scripts/check-linux-binary-deps.sh build/cuda-linux/kspaceFirstOrder-CUDA cuda
@@ -304,10 +323,38 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=x64-windows
 
+      - name: Print shipped CUDA architectures (Windows)
+        shell: pwsh
+        run: |
+          Write-Host "::group::Final CMAKE_CUDA_ARCHITECTURES (post-filter)"
+          $cacheDump = & cmake -L -N build/cuda-windows 2>$null
+          $cacheDump | Where-Object { $_ -match 'cuda_architectures' } | ForEach-Object { Write-Host $_ }
+          Write-Host "::endgroup::"
+
       - name: Build (CUDA, Windows)
         shell: pwsh
         run: |
           cmake --build build/cuda-windows --config Release -- /m
+
+      - name: Embedded SASS architectures (Windows)
+        shell: pwsh
+        run: |
+          Write-Host "::group::cuobjdump --list-elf"
+          $cuobjdump = Get-Command cuobjdump -ErrorAction SilentlyContinue
+          $exe = "build/cuda-windows/Release/kspaceFirstOrder-CUDA.exe"
+          if ($cuobjdump -and (Test-Path $exe)) {
+            $sassLog = Join-Path $env:RUNNER_TEMP 'sass-list.txt'
+            & $cuobjdump.Source --list-elf $exe | Tee-Object -FilePath $sassLog
+            Write-Host ""
+            Write-Host "Unique compute capabilities embedded:"
+            Select-String -Path $sassLog -Pattern 'sm_[0-9]+a?' -AllMatches |
+              ForEach-Object { $_.Matches } |
+              ForEach-Object { $_.Value } |
+              Sort-Object -Unique
+          } else {
+            Write-Warning "cuobjdump not found or exe missing; cannot inventory shipped archs"
+          }
+          Write-Host "::endgroup::"
 
       - name: Collect runtime DLLs (CUDA Windows)
         # Ship the CUDA exe with every non-system runtime it needs on a
