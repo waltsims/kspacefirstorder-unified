@@ -253,33 +253,20 @@ jobs:
           non-cuda-sub-packages: '[]'
           log-file-suffix: ${{ matrix.cuda-version }}.log.txt
 
-      - name: Register CUDA MSBuild customizations
+      - name: Install Ninja
         shell: pwsh
         run: |
-          $vsPath = & "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -property installationPath
-          if (-not $vsPath) {
-            throw "Failed to locate Visual Studio installation"
+          choco install ninja --no-progress -y
+          $ninja = (Get-Command ninja.exe -ErrorAction SilentlyContinue).Source
+          if (-not $ninja) {
+            $ninja = "C:\ProgramData\chocolatey\bin\ninja.exe"
           }
-          & "$vsPath\Common7\Tools\VsDevCmd.bat" -no_logo -arch=amd64 -host_arch=amd64 | Out-Null
-          if (-not $env:CUDA_PATH) {
-            throw "CUDA_PATH is not set after toolkit installation"
+          if (-not (Test-Path $ninja)) {
+            throw "Unable to locate ninja.exe after installation"
           }
-          if (-not $env:VCTargetsPath) {
-            $vcTargets = Join-Path $vsPath 'MSBuild/Microsoft/VC/v170'
-            if (-not (Test-Path $vcTargets)) {
-              throw "Unable to determine VCTargetsPath under $vsPath"
-            }
-            $env:VCTargetsPath = $vcTargets
-          }
-          $src = Join-Path $env:CUDA_PATH 'extras\visual_studio_integration\MSBuildExtensions'
-          $dest = Join-Path $env:VCTargetsPath 'BuildCustomizations'
-          Write-Host "Copying CUDA build customizations from $src to $dest"
-          if (-not (Test-Path $src)) {
-            throw "Expected MSBuildExtensions directory not found at $src"
-          }
-          New-Item -ItemType Directory -Path $dest -Force | Out-Null
-          Copy-Item -Path (Join-Path $src 'CUDA*.props') -Destination $dest -Force
-          Copy-Item -Path (Join-Path $src 'CUDA*.targets') -Destination $dest -Force
+          Split-Path $ninja | Out-File -FilePath $env:GITHUB_PATH -Append
+          "CMAKE_MAKE_PROGRAM=$ninja" | Out-File -FilePath $env:GITHUB_ENV -Append
+          & $ninja --version
 
       - name: Install vcpkg and dependencies (HDF5 + zlib)
         shell: pwsh
@@ -313,13 +300,12 @@ jobs:
       - name: Configure (CUDA, Windows)
         shell: pwsh
         env:
-          CMAKE_GENERATOR: "Visual Studio 17 2022"
-          CMAKE_GENERATOR_PLATFORM: x64
-          CMAKE_GENERATOR_TOOLSET: host=x64
           VCPKG_ROOT: ${{ env.VCPKG_ROOT }}
         run: |
           $env:PATH = "$env:VCPKG_ROOT;${env:PATH}"
           cmake -S repos/kspaceFirstOrder-cuda-windows -B build/cuda-windows `
+            -G "Ninja" `
+            -DCMAKE_MAKE_PROGRAM="$env:CMAKE_MAKE_PROGRAM" `
             -DCMAKE_BUILD_TYPE=Release `
             -DKSPACE_CPU_ARCH=avx2 `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
@@ -336,14 +322,14 @@ jobs:
       - name: Build (CUDA, Windows)
         shell: pwsh
         run: |
-          cmake --build build/cuda-windows --config Release -- /m
+          cmake --build build/cuda-windows
 
       - name: Embedded SASS architectures (Windows)
         shell: pwsh
         run: |
           Write-Host "::group::cuobjdump --list-elf"
           $cuobjdump = Get-Command cuobjdump -ErrorAction SilentlyContinue
-          $exe = "build/cuda-windows/Release/kspaceFirstOrder-CUDA.exe"
+          $exe = "build/cuda-windows/kspaceFirstOrder-CUDA.exe"
           if ($cuobjdump -and (Test-Path $exe)) {
             $sassLog = Join-Path $env:RUNNER_TEMP 'sass-list.txt'
             & $cuobjdump.Source --list-elf $exe | Tee-Object -FilePath $sassLog
