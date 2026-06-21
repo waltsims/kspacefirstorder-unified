@@ -81,9 +81,25 @@ jobs:
           # Windows runtime DLLs ship with their backend artifacts. CUDA has
           # CUDA-specific runtime DLLs (cudart/cufft) that OMP cannot provide,
           # while OMP has its own FFTW/OpenMP runtime set.
+          #
+          # Shared deps (HDF5/zlib/szip/MSVC CRT) appear in both artifact dirs
+          # and may differ at the byte level when the two Windows jobs use
+          # different MSVC versions (e.g. windows-cuda pinned to VS 2022 vs.
+          # windows-openmp on VS 2026). All implement the same C ABI, so either
+          # copy works for either backend — but only one can ship.
+          #
+          # Each call site declares its precedence: 'canonical' overwrites on
+          # conflict; 'secondary' yields. Order of calls does not matter.
+          # Proper toolchain alignment tracked in #27.
           copy_windows_dlls() {
             local artifact_dir="$1"
+            local precedence="$2"   # 'canonical' or 'secondary' — required
             local found=0
+
+            case "$precedence" in
+              canonical|secondary) ;;
+              *) echo "::error::copy_windows_dlls: precedence must be 'canonical' or 'secondary', got '$precedence'"; exit 1 ;;
+            esac
 
             for src in "$artifact_dir"/*.dll; do
               [ -e "$src" ] || continue
@@ -93,13 +109,11 @@ jobs:
               if [ -e "$dest" ]; then
                 if cmp -s "$src" "$dest"; then
                   echo "Duplicate identical DLL: $(basename "$src")"
+                elif [ "$precedence" = "canonical" ]; then
+                  echo "::warning::DLL bytes differ: $(basename "$src") — overwriting with canonical copy from $artifact_dir"
+                  cp "$src" "$dest"
                 else
-                  # First-writer-wins: CUDA is staged before OMP, so the CUDA
-                  # build's DLL takes precedence. Both implement the same C
-                  # ABI for shared deps (HDF5/zlib/szip/MSVC CRT); differences
-                  # are toolchain-version drift, not behavior. Tracked in #27
-                  # for proper toolchain alignment.
-                  echo "::warning::DLL bytes differ: $(basename "$src") from $artifact_dir — keeping the earlier-staged copy"
+                  echo "::warning::DLL bytes differ: $(basename "$src") — keeping canonical copy, dropping secondary from $artifact_dir"
                 fi
               else
                 cp "$src" "$dest"
@@ -112,8 +126,11 @@ jobs:
             fi
           }
 
-          copy_windows_dlls artifacts/kspaceFirstOrder-cuda-windows-13.0.0
-          copy_windows_dlls artifacts/kspaceFirstOrder-openmp-windows-windows-latest
+          # CUDA is canonical for shared deps (HDF5/zlib/szip/MSVC CRT).
+          # OMP contributes its backend-specific DLLs (FFTW3, libiomp5md, etc.)
+          # and yields on any byte-conflict.
+          copy_windows_dlls artifacts/kspaceFirstOrder-cuda-windows-13.0.0          canonical
+          copy_windows_dlls artifacts/kspaceFirstOrder-openmp-windows-windows-latest secondary
 
           ls -la stage/
 
