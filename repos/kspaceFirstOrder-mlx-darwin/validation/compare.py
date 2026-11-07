@@ -60,6 +60,11 @@ def compare(ref_file, test_file):
                 continue
             a = a.astype(np.float64)
             b = b.astype(np.float64)
+            if not np.all(np.isfinite(b)) and np.all(np.isfinite(a)):
+                # NaN/Inf in the tested output would otherwise vanish in max(worst, nan)
+                rows.append((name, "NON-FINITE", f"{np.count_nonzero(~np.isfinite(b))} NaN/Inf values in the MLX output"))
+                worst = np.inf
+                continue
             scale = np.max(np.abs(a))
             if scale == 0:
                 err = np.max(np.abs(b))

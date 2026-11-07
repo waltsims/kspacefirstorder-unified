@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.28)
 
 project(kspaceFirstOrder-MLX
         VERSION 1.3
@@ -51,7 +51,8 @@ if (KWAVE_FETCH_MLX)
   endif()
   FetchContent_Declare(mlx
                        GIT_REPOSITORY https://github.com/ml-explore/mlx.git
-                       GIT_TAG        ${KWAVE_MLX_VERSION})
+                       GIT_TAG        ${KWAVE_MLX_VERSION}
+                       EXCLUDE_FROM_ALL)
   FetchContent_MakeAvailable(mlx)
 else()
   find_package(MLX CONFIG REQUIRED)
@@ -153,12 +154,16 @@ if (KWAVE_BUNDLE_DEPS)
   target_include_directories(kspaceFirstOrder-MLX PRIVATE ${KWAVE_HDF5_INCLUDE_DIR})
 endif()
 
-# With a static MLX, the Metal kernels are looked up next to the executable: copy mlx.metallib there.
+# With a static MLX, the Metal kernels are looked up next to the executable: copy mlx.metallib there (and install it
+# there too, see the install rules at the end).
+set(KWAVE_COLOCATED_METALLIB OFF)
 if (KWAVE_FETCH_MLX AND APPLE AND NOT BUILD_SHARED_LIBS)
+  set(KWAVE_COLOCATED_METALLIB ON)
+  set(KWAVE_METALLIB "${mlx_BINARY_DIR}/mlx/backend/metal/kernels/mlx.metallib")
   add_dependencies(kspaceFirstOrder-MLX mlx-metallib)
   add_custom_command(TARGET kspaceFirstOrder-MLX POST_BUILD
                      COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                             "${mlx_BINARY_DIR}/mlx/backend/metal/kernels/mlx.metallib"
+                             "${KWAVE_METALLIB}"
                              "$<TARGET_FILE_DIR:kspaceFirstOrder-MLX>/mlx.metallib"
                      COMMENT "Copying mlx.metallib next to kspaceFirstOrder-MLX")
 endif()
@@ -194,3 +199,7 @@ else()
 endif()
 
 install(TARGETS kspaceFirstOrder-MLX RUNTIME DESTINATION bin)
+if (KWAVE_COLOCATED_METALLIB)
+  # The installed executable needs its Metal kernel library in the same folder.
+  install(FILES "${KWAVE_METALLIB}" DESTINATION bin)
+endif()
