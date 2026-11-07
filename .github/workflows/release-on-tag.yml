@@ -1,7 +1,8 @@
 name: Release unified binaries (manual)
 
-# Publishes a single GitHub release on this repo containing all five
-# platform/backend binaries (plus Windows runtime DLLs). Triggered
+# Publishes a single GitHub release on this repo containing all six
+# platform/backend binaries (plus Windows runtime DLLs and the Metal kernel
+# library of the macOS MLX binary). Triggered
 # manually via the Actions UI ("Run workflow"): operator supplies a
 # version string (e.g. v1.4.2) and toggles dry_run.
 #
@@ -73,6 +74,12 @@ jobs:
              stage/kspaceFirstOrder-OMP-linux
           cp artifacts/kspaceFirstOrder-openmp-darwin-macos-latest/kspaceFirstOrder-OMP \
              stage/kspaceFirstOrder-OMP-darwin
+          # Apple Silicon GPU backend. The binary loads mlx.metallib from its
+          # own directory, so consumers download both assets side by side.
+          cp artifacts/kspaceFirstOrder-mlx-darwin-macos-14/kspaceFirstOrder-MLX \
+             stage/kspaceFirstOrder-MLX-darwin
+          cp artifacts/kspaceFirstOrder-mlx-darwin-macos-14/mlx.metallib \
+             stage/mlx.metallib
           cp artifacts/kspaceFirstOrder-cuda-windows-13.0.0/kspaceFirstOrder-CUDA.exe \
              stage/kspaceFirstOrder-CUDA-windows.exe
           cp artifacts/kspaceFirstOrder-openmp-windows-windows-latest/kspaceFirstOrder-OMP.exe \
