@@ -224,6 +224,77 @@ jobs:
           brew list --versions hdf5 fftw libomp zlib || true
           cmake --version
 
+  macos-mlx:
+    # Apple Silicon GPU backend: the CUDA solver ported to MLX (Metal). MLX is
+    # built from source as a static library (pinned in the CMakeLists) and
+    # HDF5/szip/libomp are linked statically, so the shipped binary only
+    # depends on macOS system libraries/frameworks plus mlx.metallib, which
+    # must sit next to the executable. MLX_METAL_JIT keeps that file small.
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies (Homebrew)
+        run: |
+          set -euxo pipefail
+          export HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_ANALYTICS=1
+          brew install cmake hdf5 libaec libomp
+
+      - name: Check Metal compiler
+        run: |
+          set -euxo pipefail
+          # Recent Xcode releases ship the Metal toolchain as a separate component.
+          xcrun -sdk macosx metal --version || xcodebuild -downloadComponent MetalToolchain
+          xcrun -sdk macosx metal --version
+
+      - name: Configure (MLX, macOS)
+        run: |
+          set -euxo pipefail
+          cmake -S repos/kspaceFirstOrder-mlx-darwin -B build/mlx-darwin \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
+            -DKWAVE_BUNDLE_DEPS=ON
+
+      - name: Build (MLX, macOS)
+        run: |
+          set -euxo pipefail
+          cmake --build build/mlx-darwin --parallel $(sysctl -n hw.ncpu)
+
+      - name: Smoke test (MLX, macOS)
+        run: |
+          set -e
+          ./build/mlx-darwin/kspaceFirstOrder-MLX --help > /tmp/kspaceFirstOrder-MLX-help.txt
+          head -n 40 /tmp/kspaceFirstOrder-MLX-help.txt
+          ls -la build/mlx-darwin/mlx.metallib
+
+      - name: Verify self-contained linkage (MLX, macOS)
+        run: |
+          set -euo pipefail
+          otool -L build/mlx-darwin/kspaceFirstOrder-MLX
+          if otool -L build/mlx-darwin/kspaceFirstOrder-MLX | tail -n +2 | grep -vE '^\s*(/usr/lib/|/System/Library/)'; then
+            echo "::error::kspaceFirstOrder-MLX links libraries outside the macOS system (see above)"
+            exit 1
+          fi
+
+      - name: Upload artifacts (MLX, macOS)
+        uses: actions/upload-artifact@v4.3.1
+        with:
+          name: kspaceFirstOrder-mlx-darwin-macos-14
+          path: |
+            build/mlx-darwin/kspaceFirstOrder-MLX
+            build/mlx-darwin/mlx.metallib
+          if-no-files-found: error
+
+      - name: Build diagnostics (MLX, macOS)
+        if: failure()
+        run: |
+          brew list --versions hdf5 libaec libomp || true
+          cmake --version
+          xcodebuild -version || true
+
   windows-cuda:
     # Pin to windows-2022 (VS 2022). windows-latest now ships VS 2026 (v18),
     # which CUDA 13.0's host_config.h rejects: "Only the versions between
