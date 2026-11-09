@@ -610,7 +610,7 @@ void KSpaceFirstOrderSolver::printFullCodeNameAndLicense() const
   #endif
 
   // Compiler detections
-  #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+  #if !defined(__INTEL_COMPILER)
     Logger::log(Logger::LogLevel::kBasic, kOutFmtGnuCompiler, __VERSION__);
   #endif
   #ifdef __INTEL_COMPILER
@@ -786,7 +786,7 @@ void KSpaceFirstOrderSolver::initializeFftwPlans()
                                Hdf5File::canAccess(mParameters.getCheckpointFileName()));
 
   // If the GCC compiler with FFTW is used, try to import wisdom
-  #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+  #if !defined(__INTEL_COMPILER)
     // Import system wide wisdom
     fftwf_import_system_wisdom();
 
@@ -1215,7 +1215,7 @@ void KSpaceFirstOrderSolver::writeOutputDataInfo()
  */
 void KSpaceFirstOrderSolver::writeCheckpointData()
 {
-  #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+  #if !defined(__INTEL_COMPILER)
      Logger::log(Logger::LogLevel::kFull, kOutFmtStoringFftwWisdom);
      Logger::flush(Logger::LogLevel::kFull);
     // export FFTW wisdom

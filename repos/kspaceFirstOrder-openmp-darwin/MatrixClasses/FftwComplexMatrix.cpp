@@ -180,7 +180,7 @@ void FftwComplexMatrix::createR2CFftPlan1DX(RealMatrix& inMatrix)
   if (Parameters::getInstance().isSimulation3D())
   {
     // GNU Compiler + FFTW does it all at once
-    #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER)) || defined(__APPLE__)
+    #if !defined(__INTEL_COMPILER) || defined(__APPLE__)
       // How FFTs we need to perform - Z * Y
       howManyRank = 2;
       // z dim
@@ -256,7 +256,7 @@ void FftwComplexMatrix::createR2CFftPlan1DY(RealMatrix& inMatrix)
   if (Parameters::getInstance().isSimulation3D())
   {
     // GNU Compiler + FFTW does it all at once
-    #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER)) || defined(__x86_64__)
+    #if !defined(__INTEL_COMPILER) || defined(__x86_64__)
       // How FFTs we need to perform - Z * X
       howManyRank = 2;
 
@@ -330,7 +330,7 @@ void FftwComplexMatrix::createR2CFftPlan1DZ(RealMatrix& inMatrix)
     dims[0].os = nx * ny;
 
     // GNU Compiler + FFTW
-    #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER)) || defined(__APPLE__)
+    #if !defined(__INTEL_COMPILER) || defined(__APPLE__)
       // How FFTs we need to perform - Y * X
       const int  howManyRank = 2;
       fftw_iodim howManyDims[2];
@@ -406,7 +406,7 @@ void FftwComplexMatrix::createC2RFftPlan1DX(RealMatrix& outMatrix)
   if (Parameters::getInstance().isSimulation3D())
   {
     // GNU Compiler + FFTW
-    #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER)) || defined(__APPLE__)
+    #if !defined(__INTEL_COMPILER) || defined(__APPLE__)
       // How FFTs we need to perform - Z * Y
       howManyRank = 2;
 
@@ -485,7 +485,7 @@ void FftwComplexMatrix::createC2RFftPlan1DY(RealMatrix& outMatrix)
   if (Parameters::getInstance().isSimulation3D())
   {
     // GNU Compiler + FFTW
-    #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+    #if !defined(__INTEL_COMPILER)
       // How FFTs we need to perform - Z * X
       howManyRank = 2;
 
@@ -558,7 +558,7 @@ void FftwComplexMatrix::createC2RFftPlan1DZ(RealMatrix& outMatrix)
     dims[0].os = nx * ny;
 
     // GNU Compiler + FFTW
-    #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER)) || defined(__APPLE__)
+    #if !defined(__INTEL_COMPILER) || defined(__APPLE__)
       // How FFTs we need to perform - Y * X
       const int  howManyRank = 2;
       fftw_iodim howManyDims[2];
@@ -648,7 +648,7 @@ void FftwComplexMatrix::computeR2CFft1DX(RealMatrix& inMatrix)
   if (mR2CFftPlan1DX)
   {
     // GNU Compiler + FFTW
-    #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+    #if !defined(__INTEL_COMPILER)
       fftwf_execute_dft_r2c(mR2CFftPlan1DX,
                             inMatrix.getData(),
                             reinterpret_cast<fftwf_complex*>(mData));
@@ -681,7 +681,7 @@ void FftwComplexMatrix::computeR2CFft1DY(RealMatrix& inMatrix)
   if (mR2CFftPlan1DY)
   {
     // GNU Compiler + FFTW
-    #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+    #if !defined(__INTEL_COMPILER)
       fftwf_execute_dft_r2c(mR2CFftPlan1DY,
                             inMatrix.getData(),
                             reinterpret_cast<fftwf_complex*>(mData));
@@ -714,7 +714,7 @@ void FftwComplexMatrix::computeR2CFft1DZ(RealMatrix& inMatrix)
   if (mR2CFftPlan1DZ)
   {
     // GNU Compiler + FFTW
-    #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+    #if !defined(__INTEL_COMPILER)
       fftwf_execute_dft_r2c(mR2CFftPlan1DZ,
                             inMatrix.getData(),
                             reinterpret_cast<fftwf_complex*>(mData));
@@ -747,7 +747,7 @@ void FftwComplexMatrix::computeC2RFft1DX(RealMatrix& outMatrix)
   if (mC2RFftPlan1DX)
   {
     // GNU Compiler + FFTW
-    #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+    #if !defined(__INTEL_COMPILER)
       fftwf_execute_dft_c2r(mC2RFftPlan1DX,
                             reinterpret_cast<fftwf_complex*>(mData),
                             outMatrix.getData());
@@ -780,7 +780,7 @@ void FftwComplexMatrix::computeC2RFft1DY(RealMatrix& outMatrix)
   if (mC2RFftPlan1DY)
   {
     // GNU Compiler + FFTW
-    #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+    #if !defined(__INTEL_COMPILER)
       fftwf_execute_dft_c2r(mC2RFftPlan1DY,
                             reinterpret_cast<fftwf_complex*>(mData),
                             outMatrix.getData());
@@ -813,7 +813,7 @@ void FftwComplexMatrix::computeC2RFft1DZ(RealMatrix& outMatrix)
   if (mC2RFftPlan1DZ)
   {
     // GNU Compiler + FFTW
-    #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+    #if !defined(__INTEL_COMPILER)
       fftwf_execute_dft_c2r(mC2RFftPlan1DZ,
                             reinterpret_cast<fftwf_complex*>(mData),
                             outMatrix.getData());
