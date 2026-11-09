@@ -110,7 +110,7 @@ void FftwRealMatrix::createPlans1DY(RealMatrix& inMatrix)
   fftw_iodim howManyDims[1];
 
   // GNU compiler + FFTW
-  #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+  #if !defined(__INTEL_COMPILER)
 
     dims[0].is = nx;
     dims[0].n  = ny;
@@ -164,7 +164,7 @@ void FftwRealMatrix::createPlans1DY(RealMatrix& inMatrix)
     }
 
     // MKL version do not use out-of-place r2r transforms
-    #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+    #if !defined(__INTEL_COMPILER)
       mOutPlaceR2RPlans1DY[kind] =  fftwf_plan_guru_r2r(rank,               // 1D FFT rank
                                                         dims,               // 1D FFT dimensions of y
                                                         howManyRank,        // How many in x and z
@@ -197,7 +197,7 @@ void FftwRealMatrix::computeForwardR2RFft1DY(const TransformKind kind,
                                              RealMatrix&         inMatrix)
 {
   // GNU compiler + FFTW
-  #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER)) || defined(__APPLE__)
+  #if !defined(__INTEL_COMPILER) || defined(__APPLE__)
     if (mOutPlaceR2RPlans1DY[kind])
     {
       fftwf_execute_r2r(mOutPlaceR2RPlans1DY[kind], inMatrix.getData(), mData);
@@ -239,7 +239,7 @@ void FftwRealMatrix::computeInverseR2RFft1DY(const TransformKind kind,
                                              RealMatrix&         outMatrix)
 {
   // GNU compiler + FFTW
-  #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER)) || defined(__APPLE__)
+  #if !defined(__INTEL_COMPILER) || defined(__APPLE__)
     if (mOutPlaceR2RPlans1DY[kind])
     {
       fftwf_execute_r2r(mOutPlaceR2RPlans1DY[kind], mData, outMatrix.getData());
@@ -282,7 +282,7 @@ void FftwRealMatrix::computeR2RFft1DY(const TransformKind kind)
   if (mInPlaceR2RPlans1DY[kind])
   {
     // GNU compiler + FFTW
-    #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+    #if !defined(__INTEL_COMPILER)
       fftwf_execute_r2r(mInPlaceR2RPlans1DY[kind], mData, mData);
     #endif
 

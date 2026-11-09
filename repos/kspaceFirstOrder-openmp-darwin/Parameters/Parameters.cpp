@@ -758,7 +758,7 @@ void Parameters::incrementTimeIndex()
  */
 void Parameters::exportWisdom()
 {
-  #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+  #if !defined(__INTEL_COMPILER)
     int success = fftwf_export_wisdom_to_filename(getWisdomFileName().c_str());
     if (success == 0)
     {
@@ -773,7 +773,7 @@ void Parameters::exportWisdom()
  */
 void Parameters::importWisdom()
 {
-  #if (defined(__GNUC__) || defined(__GNUG__)) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+  #if !defined(__INTEL_COMPILER)
     int success = fftwf_import_wisdom_from_filename(getWisdomFileName().c_str());
     if (success == 0)
     {
